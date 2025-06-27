@@ -10,6 +10,7 @@ import 'package:tamabudchi_app/pixel_art/values.dart';
 class ArtBoard extends StatefulWidget {
   final bool isVertical;
   final double screenHeight;
+  final double statusBarHeight;
   final int colLength;
   final int rowLength;
   final List<List<PixelArt?>> gameBoard;
@@ -22,6 +23,7 @@ class ArtBoard extends StatefulWidget {
     required this.rowLength,
     required this.resetGameBoard,
     required this.screenHeight,
+    required this.statusBarHeight,
   }) : gameBoard = List.generate(
          colLength,
          (i) => List.generate(rowLength, (j) => null),
@@ -34,6 +36,8 @@ class ArtBoard extends StatefulWidget {
 class _ArtBoardState extends State<ArtBoard> {
   bool isGoingDown = true;
   bool isOver = false;
+  double bottomBar = 60;
+  double topBar = 100;
   int frameRate = 1000;
   int speedNormal = 1000;
   int speedFast = 500;
@@ -386,31 +390,52 @@ class _ArtBoardState extends State<ArtBoard> {
 
   @override
   Widget build(BuildContext context) {
-    // print(MediaQuery.of(context).size.width);
-    // print(MediaQuery.of(context).size.height);
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () => nextSequence(),
-        onLongPress: () => animaterTimer.cancel(),
+        // onTap: () => nextSequence(),
+        // onLongPress: () => animaterTimer.cancel(),
+        onDoubleTap: () => Navigator.of(context).pop(),
+        onLongPress: () => Navigator.of(context).pop(),
         child:
             widget.isVertical
                 ? Column(
                   children: [
                     Container(
                       color: Colors.black,
-                      height: 60,
+                      height: topBar,
+                      padding: const EdgeInsets.only(top: 35),
                       width: double.infinity,
+                      child: Opacity(
+                        opacity:
+                            sequenceFrame >=
+                                    (widget.colLength * 0.8).floor() + 5
+                                ? 1
+                                : 0,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'i like you',
+                            style: TextStyle(color: Colors.white, fontSize: 24),
+                          ),
+                        ),
+                      ),
                     ),
                     Expanded(
                       child: SizedBox(
-                        width: 0.428 * (widget.screenHeight - 120),
+                        // color: Colors.teal,
+                        width:
+                            0.428 * (widget.screenHeight - bottomBar - topBar),
+                        // (120 + widget.statusBarHeight)),
                         child: GridView.builder(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: widget.rowLength,
                                 childAspectRatio: 1,
                               ),
+                          padding: EdgeInsets.zero,
                           shrinkWrap: true,
                           itemCount: widget.rowLength * widget.colLength,
                           physics: NeverScrollableScrollPhysics(),
@@ -419,7 +444,13 @@ class _ArtBoardState extends State<ArtBoard> {
                             int row = (index / widget.rowLength).floor();
                             int col = index % widget.rowLength;
 
-                            if (widget.gameBoard[row][col] != null) {
+                            if (currentPiece.position.contains(index)) {
+                              // Main piece
+                              return Pixel(
+                                color: currentPiece.color,
+                                // child: index.toString(),
+                              );
+                            } else if (widget.gameBoard[row][col] != null) {
                               // Background pieces
                               final PixelArt? pixelType =
                                   widget.gameBoard[row][col];
@@ -427,16 +458,11 @@ class _ArtBoardState extends State<ArtBoard> {
                                 color: pixelColors[pixelType]!,
                                 // child: index.toString(),
                               );
-                            } else if (currentPiece.position.contains(index)) {
-                              // Main piece
-                              return Pixel(
-                                color: currentPiece.color,
-                                // child: index.toString(),
-                              );
                             } else {
                               // Blank pixel
                               return Pixel(
-                                color: Colors.grey[900]!,
+                                // color: Colors.grey[900]!,
+                                color: Colors.black,
                                 // child: index.toString(),
                               );
                             }
@@ -446,14 +472,26 @@ class _ArtBoardState extends State<ArtBoard> {
                     ),
                     Container(
                       color: Colors.black,
-                      height: 60,
+                      height: bottomBar,
+                      // height: widget.screenHeight * 0.05,
                       width: double.infinity,
                     ),
                   ],
                 )
                 : Row(
                   children: [
-                    Flexible(flex: 1, child: Container(color: Colors.black)),
+                    Flexible(
+                      flex: 1,
+                      child: Container(
+                        color: Colors.black,
+                        child: IconButton(
+                          icon: Icon(Icons.chevron_left, color: Colors.white),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ),
+                    ),
                     Flexible(
                       flex: 10,
                       child: GridView.builder(
@@ -468,7 +506,13 @@ class _ArtBoardState extends State<ArtBoard> {
                           int row = (index / widget.rowLength).floor();
                           int col = index % widget.rowLength;
 
-                          if (widget.gameBoard[row][col] != null) {
+                          if (currentPiece.position.contains(index)) {
+                            // Main piece
+                            return Pixel(
+                              color: currentPiece.color,
+                              // child: index.toString(),
+                            );
+                          } else if (widget.gameBoard[row][col] != null) {
                             // Background pieces
                             final PixelArt? pixelType =
                                 widget.gameBoard[row][col];
@@ -476,16 +520,11 @@ class _ArtBoardState extends State<ArtBoard> {
                               color: pixelColors[pixelType]!,
                               // child: index.toString(),
                             );
-                          } else if (currentPiece.position.contains(index)) {
-                            // Main piece
-                            return Pixel(
-                              color: currentPiece.color,
-                              // child: index.toString(),
-                            );
                           } else {
                             // Blank pixel
                             return Pixel(
-                              color: Colors.grey[900]!,
+                              // color: Colors.grey[900]!,
+                              color: Colors.black,
                               // child: index.toString(),
                             );
                           }

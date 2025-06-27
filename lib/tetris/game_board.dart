@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:tamabudchi_app/home_screen.dart';
 import 'package:tamabudchi_app/tetris/piece.dart';
 import 'package:tamabudchi_app/tetris/pixel.dart';
+import 'package:tamabudchi_app/tetris/tetris_button.dart';
 import 'package:tamabudchi_app/tetris/values.dart';
 
 /// Create the game board with pieces.
@@ -25,7 +27,7 @@ class _GameBoardState extends State<GameBoard> {
   bool gameOver = false;
   int currentScore = 0;
   int speedNormal = 400;
-  int speedUp = 200;
+  int speedUp = 100;
 
   // current tetris piece
   Piece currentPiece = Piece(type: Tetromino.L);
@@ -79,10 +81,49 @@ class _GameBoardState extends State<GameBoard> {
             actions: [
               TextButton(
                 onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+                child: Text('To Menu'),
+              ),
+              TextButton(
+                onPressed: () {
                   resetGame();
                   Navigator.of(context).pop();
                 },
                 child: Text('Play Again'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void showPauseDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Pause'),
+            content: Text('Your score is: $currentScore'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+                child: Text('To Menu'),
+              ),
+              TextButton(
+                onPressed: () {
+                  gameLoop(speedNormal);
+                  Navigator.of(context).pop();
+                },
+                child: Text('Continue'),
               ),
             ],
           ),
@@ -267,6 +308,8 @@ class _GameBoardState extends State<GameBoard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Note: constantly tapping "pauses" movement (bug vs feature)
+      // Somewhere is responding to the tap and preventing the timer from going.
       body: GestureDetector(
         onLongPress: () {
           // print('long press start');
@@ -320,26 +363,31 @@ class _GameBoardState extends State<GameBoard> {
                 },
               ),
             ),
-            Text('Score: $currentScore', style: TextStyle(color: Colors.white)),
+            GestureDetector(
+              onDoubleTap: () {
+                gameLoopTimer.cancel();
+                showPauseDialog();
+              },
+              child: Text(
+                'Score: $currentScore',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 50, top: 50),
+              padding: const EdgeInsets.only(bottom: 50, top: 25),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    onPressed: moveLeft,
-                    color: Colors.white,
-                    icon: Icon(Icons.arrow_back_ios),
+                  TetrisButton(
+                    icon: Icons.arrow_back_ios,
+                    iconOffset: 10,
+                    onTap: moveLeft,
                   ),
-                  IconButton(
-                    onPressed: rotatePiece,
-                    color: Colors.white,
-                    icon: Icon(Icons.rotate_right),
-                  ),
-                  IconButton(
-                    onPressed: moveRight,
-                    color: Colors.white,
-                    icon: Icon(Icons.arrow_forward_ios),
+                  TetrisButton(icon: Icons.rotate_right, onTap: rotatePiece),
+                  TetrisButton(
+                    icon: Icons.arrow_forward_ios,
+                    iconOffset: 2,
+                    onTap: moveRight,
                   ),
                 ],
               ),
