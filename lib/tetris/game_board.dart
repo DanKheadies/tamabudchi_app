@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:tamabudchi_app/piece.dart';
-import 'package:tamabudchi_app/pixel.dart';
-import 'package:tamabudchi_app/values.dart';
+import 'package:tamabudchi_app/tetris/piece.dart';
+import 'package:tamabudchi_app/tetris/pixel.dart';
+import 'package:tamabudchi_app/tetris/values.dart';
 
 /// Create the game board with pieces.
 List<List<Tetromino?>> gameBoard = List.generate(
@@ -268,25 +268,18 @@ class _GameBoardState extends State<GameBoard> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        // onLongPress: () {
-        //   moveDown();
-        // },
-        // onVerticalDragDown:
-        //     (details) => setState(() {
-        //       speedFactor = 5;
-        //     }),
         onLongPress: () {
-          print('long press start');
+          // print('long press start');
           gameLoopTimer.cancel();
           gameLoop(speedUp);
         },
         onLongPressEnd: (details) {
-          print('long press end');
+          // print('long press end');
           gameLoopTimer.cancel();
           gameLoop(speedNormal);
         },
         onLongPressCancel: () {
-          print('long press cancel');
+          // print('long press cancel');
           gameLoopTimer.cancel();
           gameLoop(speedNormal);
         },
@@ -308,20 +301,20 @@ class _GameBoardState extends State<GameBoard> {
                     // Current piece
                     return Pixel(
                       color: currentPiece.color,
-                      child: index.toString(),
+                      // child: index.toString(),
                     );
                   } else if (gameBoard[row][col] != null) {
                     // Landed pieces
                     final Tetromino? tetrominoType = gameBoard[row][col];
                     return Pixel(
                       color: tetrominoColors[tetrominoType]!,
-                      child: index.toString(),
+                      // child: index.toString(),
                     );
                   } else {
                     // Blank pixel
                     return Pixel(
                       color: Colors.grey[900]!,
-                      child: index.toString(),
+                      // child: index.toString(),
                     );
                   }
                 },

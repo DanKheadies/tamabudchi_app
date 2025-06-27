@@ -1,8 +1,8 @@
 // Grid dimensions
 import 'package:flutter/material.dart';
 
-int colLength = 15;
-int rowLength = 10;
+int colLength = 15; // 16
+int rowLength = 10; // 32
 
 enum Direction { left, right, down }
 

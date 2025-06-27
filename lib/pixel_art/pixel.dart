@@ -4,7 +4,7 @@ class Pixel extends StatelessWidget {
   final Color color;
   final String? child;
 
-  const Pixel({super.key, required this.color, required this.child});
+  const Pixel({super.key, required this.color, this.child});
 
   @override
   Widget build(BuildContext context) {

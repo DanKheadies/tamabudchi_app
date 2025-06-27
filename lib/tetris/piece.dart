@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tamabudchi_app/game_board.dart';
-import 'package:tamabudchi_app/values.dart';
+import 'package:tamabudchi_app/tetris/game_board.dart';
+import 'package:tamabudchi_app/tetris/values.dart';
 
 class Piece {
   /// Type of tetris piece
