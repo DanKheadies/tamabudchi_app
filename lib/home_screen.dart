@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tamabudchi_app/pixel_art/art_board.dart';
+import 'package:tamabudchi_app/pixel_hero/continuous_drag_selection.dart';
+import 'package:tamabudchi_app/pixel_hero/pixel_hero_board.dart';
 import 'package:tamabudchi_app/tetris/game_board.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -8,15 +10,36 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
-    print(screenSize.height);
-    print(MediaQuery.of(context).devicePixelRatio);
+    // print(screenSize.height);
+    // print(MediaQuery.of(context).devicePixelRatio);
     bool isVertical = screenSize.height > screenSize.width;
     double statusBarHeight = MediaQuery.of(context).viewPadding.top;
 
     return Scaffold(
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
+          const SizedBox(height: 0, width: double.infinity),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ContinousDragGesturesDetection(),
+                ),
+              );
+            },
+            child: Text('Continuous Drag'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PixelHeroBoard()),
+              );
+            },
+            child: Text('Pixel Hero'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.push(
@@ -26,7 +49,6 @@ class HomeScreen extends StatelessWidget {
             },
             child: Text('Tetris'),
           ),
-          const SizedBox(height: 100, width: double.infinity),
           TextButton(
             onPressed: () {
               Navigator.push(
@@ -46,6 +68,7 @@ class HomeScreen extends StatelessWidget {
             },
             child: Text('Pixel Art'),
           ),
+          const SizedBox(height: 0, width: double.infinity),
         ],
       ),
     );
