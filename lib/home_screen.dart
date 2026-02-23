@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tamabudchi_app/kana_hero/kana_hero.dart';
 import 'package:tamabudchi_app/pixel_art/art_board.dart';
 import 'package:tamabudchi_app/pixel_hero/continuous_drag_selection.dart';
 import 'package:tamabudchi_app/pixel_hero/pixel_hero_board.dart';
@@ -20,6 +21,15 @@ class HomeScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           const SizedBox(height: 0, width: double.infinity),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const KanaHero()),
+              );
+            },
+            child: Text('Kana Hero'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.push(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tamabudchi_app/tetris/pixel.dart';
-import 'package:tamabudchi_app/tetris/values.dart';
+// import 'package:tamabudchi_app/tetris/values.dart';
 
 class PixelHeroBoard extends StatefulWidget {
   const PixelHeroBoard({super.key});
