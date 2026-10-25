@@ -1,17 +1,22 @@
-# tamabudchi_app
+# Tamabudchi
 
-A new Flutter project.
+A seed is an egg for a bud. Help your bud grow buds and do dank things.
 
-## Getting Started
+## Credits:
 
-This project is a starting point for a Flutter application.
+> [Digital Monster](https://en.wikipedia.org/wiki/Digital_Monster)
+> via WiZ and Bandai
 
-A few resources to get you started if this is your first Flutter project:
+> [Tamagotchi](https://en.wikipedia.org/wiki/Tamagotchi)
+> via Akihiro Yokoi and Aki Maita, WiZ and Bandai
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Special Thanks:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [Flutter](https://flutter.dev/)
+- Stack Overflow
+- GitHub
+- Google
+
+---
+
+Compliments of DTFun LLC 2027
