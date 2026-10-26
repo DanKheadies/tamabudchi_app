@@ -24,13 +24,11 @@ class PixelPlaybackController extends ChangeNotifier {
   }
 
   void pause() {
-    print('pause');
     _playing = false;
     notifyListeners();
   }
 
   void play() {
-    print('play');
     _playing = true;
     notifyListeners();
   }

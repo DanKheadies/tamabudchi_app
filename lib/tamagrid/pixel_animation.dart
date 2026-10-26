@@ -63,7 +63,7 @@ class _PixelAnimationState extends State<PixelAnimation>
     if (controller.playing && !ticker.isActive) {
       lastElapsed = Duration.zero; // restart at zero on start()
       ticker.start();
-    } else if (controller.playing && ticker.isActive) {
+    } else if (!controller.playing && ticker.isActive) {
       ticker.stop();
     }
   }

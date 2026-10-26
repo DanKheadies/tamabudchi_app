@@ -9,17 +9,49 @@ class Tamabudchi extends StatefulWidget {
 }
 
 class _TamabudchiState extends State<Tamabudchi> {
-  List<Set<int>> frames = [
+  List<Set<int>> frames = [];
+  List<Set<int>> framesSimple = [
     {0, 2, 4, 6, 8},
     {0, 1, 2, 4, 6, 7, 8},
     {4},
   ];
+  List<Set<int>> framesSpiral = [
+    {4},
+    {1},
+    {2},
+    {5},
+    {8},
+    {7},
+    {6},
+    {3},
+    {0},
+    {},
+    {4},
+    {4, 1},
+    {4, 1, 2},
+    {4, 1, 2, 5},
+    {4, 1, 2, 5, 8},
+    {4, 1, 2, 5, 8, 7},
+    {4, 1, 2, 5, 8, 7, 6},
+    {4, 1, 2, 5, 8, 7, 6, 3},
+    {4, 1, 2, 5, 8, 7, 6, 3, 0},
+    {},
+  ];
 
-  late final playback = PixelPlaybackController(frameCount: frames.length);
+  late PixelPlaybackController playback;
+
+  @override
+  void initState() {
+    super.initState();
+
+    frames = framesSimple;
+    playback = PixelPlaybackController(frameCount: frames.length);
+  }
 
   @override
   void dispose() {
     playback.dispose();
+
     super.dispose();
   }
 
@@ -51,45 +83,9 @@ class _TamabudchiState extends State<Tamabudchi> {
                               SequenceBar(
                                 barSize: barSize,
                                 frameCount: frames.length,
+                                isHorizontal: true,
                                 playback: playback,
                               ),
-                              // Container(
-                              //   color: Colors.green.shade100,
-                              //   height: barSize,
-                              //   margin: EdgeInsets.only(bottom: barSize / 4),
-                              //   width: double.infinity,
-                              //   child: Row(
-                              //     mainAxisAlignment:
-                              //         MainAxisAlignment.spaceEvenly,
-                              //     children: [
-                              //       IconButton(
-                              //         color: Colors.deepPurple,
-                              //         onPressed: () {}, // => playback.step(-1),
-                              //         icon: const Icon(Icons.skip_previous),
-                              //       ),
-                              //       IconButton(
-                              //         color: Colors.deepPurple,
-                              //         onPressed: () {},
-                              //         icon: Icon(Icons.play_arrow),
-                              //       ),
-                              //       IconButton(
-                              //         color: Colors.deepPurple,
-                              //         onPressed: () {},
-                              //         icon: Icon(Icons.skip_next),
-                              //       ),
-                              //       IconButton(
-                              //         color: Colors.deepPurple,
-                              //         onPressed: () {},
-                              //         icon: Icon(Icons.fast_rewind),
-                              //       ),
-                              //       IconButton(
-                              //         color: Colors.deepPurple,
-                              //         onPressed: () {},
-                              //         icon: Icon(Icons.fast_forward),
-                              //       ),
-                              //     ],
-                              //   ),
-                              // ),
                             ],
                             TamaGrid(frames: frames, playback: playback),
                             if (constraints.maxHeight > limenAndBars) ...[
@@ -98,6 +94,22 @@ class _TamabudchiState extends State<Tamabudchi> {
                                 height: barSize,
                                 margin: EdgeInsets.only(top: barSize / 4),
                                 width: double.infinity,
+                                child: Center(
+                                  child: IconButton(
+                                    color: Colors.deepPurple,
+                                    icon: Icon(Icons.cyclone),
+                                    onPressed: () {
+                                      setState(() {
+                                        frames = frames == framesSimple
+                                            ? framesSpiral
+                                            : framesSimple;
+                                        playback = PixelPlaybackController(
+                                          frameCount: frames.length,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                ),
                               ),
                             ],
                           ],
@@ -106,11 +118,11 @@ class _TamabudchiState extends State<Tamabudchi> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (constraints.maxWidth > limenAndBars) ...[
-                              Container(
-                                color: Colors.green.shade100,
-                                height: double.infinity,
-                                margin: EdgeInsets.only(right: barSize / 4),
-                                width: barSize,
+                              SequenceBar(
+                                barSize: barSize,
+                                frameCount: frames.length,
+                                isHorizontal: false,
+                                playback: playback,
                               ),
                             ],
                             TamaGrid(frames: frames, playback: playback),
@@ -125,36 +137,38 @@ class _TamabudchiState extends State<Tamabudchi> {
                           ],
                         ),
                 ),
+                // Vertical with floater
                 if (!isWide && constraints.maxHeight <= limenAndBars) ...[
                   Positioned(
                     top: limen / 100,
                     left: limen / 100,
                     child: Opacity(
                       opacity: 0.75,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.green.shade100,
-                        ),
-                        height: barSize,
-                        width: limen - limen / 50,
+                      child: SequenceBar(
+                        barSize: barSize,
+                        frameCount: frames.length,
+                        isFloating: true,
+                        isHorizontal: true,
+                        limen: limen,
+                        playback: playback,
                       ),
                     ),
                   ),
                 ],
+                // Horizontal w/ floater
                 if (isWide && constraints.maxWidth < limenAndBars) ...[
                   Positioned(
                     top: limen / 100,
                     left: limen / 100,
                     child: Opacity(
                       opacity: 0.75,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.green.shade100,
-                        ),
-                        height: limen - limen / 50,
-                        width: barSize,
+                      child: SequenceBar(
+                        barSize: barSize,
+                        frameCount: frames.length,
+                        isFloating: true,
+                        isHorizontal: false,
+                        limen: limen,
+                        playback: playback,
                       ),
                     ),
                   ),
