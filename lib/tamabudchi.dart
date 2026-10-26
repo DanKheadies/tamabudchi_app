@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
-class Tamabudchi extends StatelessWidget {
+class Tamabudchi extends StatefulWidget {
   const Tamabudchi({super.key});
+
+  @override
+  State<Tamabudchi> createState() => _TamabudchiState();
+}
+
+class _TamabudchiState extends State<Tamabudchi> {
+  List<Set<int>> frames = [
+    {0, 2, 4, 6, 8},
+    {0, 1, 2, 4, 6, 7, 8},
+    {4},
+  ];
+
+  late final playback = PixelPlaybackController(frameCount: frames.length);
+
+  @override
+  void dispose() {
+    playback.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,14 +48,50 @@ class Tamabudchi extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (constraints.maxHeight > limenAndBars) ...[
-                              Container(
-                                color: Colors.green.shade100,
-                                height: barSize,
-                                margin: EdgeInsets.only(bottom: barSize / 4),
-                                width: double.infinity,
+                              SequenceBar(
+                                barSize: barSize,
+                                frameCount: frames.length,
+                                playback: playback,
                               ),
+                              // Container(
+                              //   color: Colors.green.shade100,
+                              //   height: barSize,
+                              //   margin: EdgeInsets.only(bottom: barSize / 4),
+                              //   width: double.infinity,
+                              //   child: Row(
+                              //     mainAxisAlignment:
+                              //         MainAxisAlignment.spaceEvenly,
+                              //     children: [
+                              //       IconButton(
+                              //         color: Colors.deepPurple,
+                              //         onPressed: () {}, // => playback.step(-1),
+                              //         icon: const Icon(Icons.skip_previous),
+                              //       ),
+                              //       IconButton(
+                              //         color: Colors.deepPurple,
+                              //         onPressed: () {},
+                              //         icon: Icon(Icons.play_arrow),
+                              //       ),
+                              //       IconButton(
+                              //         color: Colors.deepPurple,
+                              //         onPressed: () {},
+                              //         icon: Icon(Icons.skip_next),
+                              //       ),
+                              //       IconButton(
+                              //         color: Colors.deepPurple,
+                              //         onPressed: () {},
+                              //         icon: Icon(Icons.fast_rewind),
+                              //       ),
+                              //       IconButton(
+                              //         color: Colors.deepPurple,
+                              //         onPressed: () {},
+                              //         icon: Icon(Icons.fast_forward),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
                             ],
-                            TamaGrid(),
+                            TamaGrid(frames: frames, playback: playback),
                             if (constraints.maxHeight > limenAndBars) ...[
                               Container(
                                 color: Colors.yellow.shade100,
@@ -58,7 +113,7 @@ class Tamabudchi extends StatelessWidget {
                                 width: barSize,
                               ),
                             ],
-                            TamaGrid(),
+                            TamaGrid(frames: frames, playback: playback),
                             if (constraints.maxWidth > limenAndBars) ...[
                               Container(
                                 color: Colors.yellow.shade100,
