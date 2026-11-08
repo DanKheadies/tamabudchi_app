@@ -25,7 +25,6 @@ class SequenceBar extends StatelessWidget {
       listenable: playback,
       builder: (context, _) {
         return Container(
-          // color: Colors.green.shade100,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(isFloating! ? 15 : 0),
             color: Colors.green.shade100,

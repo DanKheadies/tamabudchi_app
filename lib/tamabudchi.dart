@@ -87,29 +87,16 @@ class _TamabudchiState extends State<Tamabudchi> {
                                 playback: playback,
                               ),
                             ],
-                            TamaGrid(frames: frames, playback: playback),
+                            TamaGrid(
+                              frames: frames,
+                              gridSize: 3,
+                              playback: playback,
+                            ),
                             if (constraints.maxHeight > limenAndBars) ...[
-                              Container(
-                                color: Colors.yellow.shade100,
-                                height: barSize,
-                                margin: EdgeInsets.only(top: barSize / 4),
-                                width: double.infinity,
-                                child: Center(
-                                  child: IconButton(
-                                    color: Colors.deepPurple,
-                                    icon: Icon(Icons.cyclone),
-                                    onPressed: () {
-                                      setState(() {
-                                        frames = frames == framesSimple
-                                            ? framesSpiral
-                                            : framesSimple;
-                                        playback = PixelPlaybackController(
-                                          frameCount: frames.length,
-                                        );
-                                      });
-                                    },
-                                  ),
-                                ),
+                              FramesBar(
+                                barSize: barSize,
+                                cycleFrameSet: cycleFrames,
+                                isHorizontal: true,
                               ),
                             ],
                           ],
@@ -125,13 +112,16 @@ class _TamabudchiState extends State<Tamabudchi> {
                                 playback: playback,
                               ),
                             ],
-                            TamaGrid(frames: frames, playback: playback),
+                            TamaGrid(
+                              frames: frames,
+                              gridSize: 3,
+                              playback: playback,
+                            ),
                             if (constraints.maxWidth > limenAndBars) ...[
-                              Container(
-                                color: Colors.yellow.shade100,
-                                height: double.infinity,
-                                margin: EdgeInsets.only(left: barSize / 4),
-                                width: barSize,
+                              FramesBar(
+                                barSize: barSize,
+                                cycleFrameSet: cycleFrames,
+                                isHorizontal: false,
                               ),
                             ],
                           ],
@@ -179,13 +169,12 @@ class _TamabudchiState extends State<Tamabudchi> {
                     left: limen / 100,
                     child: Opacity(
                       opacity: 0.75,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.yellow.shade100,
-                        ),
-                        height: barSize,
-                        width: limen - limen / 50,
+                      child: FramesBar(
+                        barSize: barSize,
+                        cycleFrameSet: cycleFrames,
+                        isFloating: true,
+                        isHorizontal: true,
+                        limen: limen,
                       ),
                     ),
                   ),
@@ -196,13 +185,12 @@ class _TamabudchiState extends State<Tamabudchi> {
                     right: limen / 100,
                     child: Opacity(
                       opacity: 0.75,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.yellow.shade100,
-                        ),
-                        height: limen - limen / 50,
-                        width: barSize,
+                      child: FramesBar(
+                        barSize: barSize,
+                        cycleFrameSet: cycleFrames,
+                        isFloating: true,
+                        isHorizontal: false,
+                        limen: limen,
                       ),
                     ),
                   ),
@@ -213,5 +201,12 @@ class _TamabudchiState extends State<Tamabudchi> {
         ),
       ),
     );
+  }
+
+  void cycleFrames() {
+    setState(() {
+      frames = frames == framesSimple ? framesSpiral : framesSimple;
+      playback = PixelPlaybackController(frameCount: frames.length);
+    });
   }
 }
