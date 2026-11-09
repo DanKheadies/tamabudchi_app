@@ -7,13 +7,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tamabudchi_app/barrel.dart';
 
 import 'package:tamabudchi_app/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    final SpriteLibrary library = SpriteLibrary();
+    await library.load();
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const TamabudchiApp());
+    await tester.pumpWidget(Tamabudchi(library: library));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
-void main() {
-  runApp(const TamabudchiApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final SpriteLibrary library = SpriteLibrary();
+  await library.load();
+
+  runApp(Tamabudchi(library: library));
 }
 
-class TamabudchiApp extends StatelessWidget {
-  const TamabudchiApp({super.key});
+class Tamabudchi extends StatelessWidget {
+  final SpriteLibrary library;
 
-  // This widget is the root of your application.
+  const Tamabudchi({super.key, required this.library});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,7 +24,7 @@ class TamabudchiApp extends StatelessWidget {
         colorScheme: ColorScheme.dark(),
       ),
       debugShowCheckedModeBanner: false,
-      home: const Tamabudchi(),
+      home: LibraryScreen(library: library),
     );
   }
 }

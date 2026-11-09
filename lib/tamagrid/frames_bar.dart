@@ -6,15 +6,15 @@ class FramesBar extends StatelessWidget {
   final bool? isFloating;
   final double barSize;
   final double? limen;
-  final Function() cycleFrameSet;
+  final Function() onOpenLibrary;
   final SpriteEditor editor;
 
   const FramesBar({
     super.key,
     required this.barSize,
-    required this.cycleFrameSet,
     required this.editor,
     required this.isHorizontal,
+    required this.onOpenLibrary,
     this.isFloating = false,
     this.limen = 0,
   });
@@ -48,11 +48,6 @@ class FramesBar extends StatelessWidget {
             direction: isHorizontal ? Axis.horizontal : Axis.vertical,
             // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              IconButton(
-                color: editor.editing ? Colors.purple : Colors.deepPurple,
-                icon: Icon(editor.editing ? Icons.edit_off : Icons.edit),
-                onPressed: editor.toggleEditing,
-              ),
               if (editor.editing)
                 IconButton(
                   color: editor.onionSkin ? Colors.purple : Colors.deepPurple,
@@ -60,13 +55,21 @@ class FramesBar extends StatelessWidget {
                     editor.onionSkin ? Icons.layers : Icons.layers_outlined,
                   ),
                   onPressed: editor.toggleOnionSkin,
+                  tooltip: 'Onion skin (ghost of previous frame)',
                 )
               else
                 IconButton(
                   color: Colors.deepPurple,
-                  icon: Icon(Icons.cyclone),
-                  onPressed: cycleFrameSet,
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: onOpenLibrary,
+                  tooltip: 'Back to library',
                 ),
+              IconButton(
+                color: editor.editing ? Colors.purple : Colors.deepPurple,
+                icon: Icon(editor.editing ? Icons.edit_off : Icons.edit),
+                onPressed: editor.toggleEditing,
+                tooltip: 'Toggle editing',
+              ),
               Expanded(
                 child: FrameStrip(editor: editor, isHorizontal: isHorizontal),
               ),
@@ -75,27 +78,27 @@ class FramesBar extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   color: Colors.deepPurple,
                   disabledColor: Colors.black26,
-                  tooltip: 'Add blank frame',
                   icon: Icon(Icons.add_box_outlined),
                   onPressed: canEdit ? editor.addFrame : null,
+                  tooltip: 'Add blank frame',
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   color: Colors.deepPurple,
                   disabledColor: Colors.black26,
-                  tooltip: 'Duplicate frame',
                   icon: Icon(Icons.copy),
                   onPressed: canEdit ? editor.duplicateFrame : null,
+                  tooltip: 'Duplicate frame',
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   color: Colors.deepPurple,
                   disabledColor: Colors.black26,
-                  tooltip: 'Delete frame',
                   icon: Icon(Icons.delete_outline),
                   onPressed: canEdit && editor.canDeleteFrame
                       ? editor.deleteFrame
                       : null,
+                  tooltip: 'Delete frame',
                 ),
               ],
             ],
