@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
 class PixelAnimation extends StatefulWidget {
+  final bool onionSkin;
   final Duration baseFrameDuration;
   final int gridSize;
   final List<Set<int>> frames;
@@ -14,6 +15,7 @@ class PixelAnimation extends StatefulWidget {
     required this.frames,
     required this.gridSize,
     this.baseFrameDuration = const Duration(milliseconds: 400),
+    this.onionSkin = false,
   });
 
   @override
@@ -80,15 +82,28 @@ class _PixelAnimationState extends State<PixelAnimation>
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: controller,
-      builder: (context, _) => AspectRatio(
-        aspectRatio: 1,
-        child: CustomPaint(
-          painter: PixelGridPainter(
-            frame: widget.frames[controller.frameIndex],
-            gridSize: widget.gridSize,
+      builder: (context, _) {
+        final frames = widget.frames;
+        final index = controller.frameIndex;
+
+        // The animation loops; frame 0's "previous" is the last frame.
+        final showGhost =
+            widget.onionSkin && !controller.playing && frames.length > 1;
+        final ghost = showGhost
+            ? frames[(index - 1 + frames.length) % frames.length]
+            : null;
+
+        return AspectRatio(
+          aspectRatio: 1,
+          child: CustomPaint(
+            painter: PixelGridPainter(
+              frame: widget.frames[controller.frameIndex],
+              ghost: ghost,
+              gridSize: widget.gridSize,
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -6,23 +6,23 @@ class SequenceBar extends StatelessWidget {
   final bool? isFloating;
   final double barSize;
   final double? limen;
-  final int frameCount;
-  final PixelPlaybackController playback;
+  final SpriteEditor editor;
 
   const SequenceBar({
     super.key,
     required this.barSize,
-    required this.frameCount,
+    required this.editor,
     required this.isHorizontal,
-    required this.playback,
     this.isFloating = false,
     this.limen = 0,
   });
 
+  PixelPlaybackController get playback => editor.playback;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: playback,
+      listenable: editor.changes,
       builder: (context, _) {
         return Container(
           decoration: BoxDecoration(
@@ -42,45 +42,65 @@ class SequenceBar extends StatelessWidget {
               : isFloating!
               ? limen! - limen! / 50
               : double.infinity,
-          child: isHorizontal
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [...buttons()],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [...buttons()],
-                ),
+          child: Flex(
+            direction: isHorizontal ? Axis.horizontal : Axis.vertical,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [...historyButtons(), ...sequenceButtons()],
+          ),
         );
       },
     );
   }
 
-  List<Widget> buttons() {
+  List<Widget> historyButtons() {
+    if (!editor.editing) return const [];
+
+    final bool canEdit = editor.canEdit;
+    return [
+      IconButton(
+        visualDensity: VisualDensity.compact,
+        color: Colors.deepPurple,
+        disabledColor: Colors.black26,
+        tooltip: 'Undo',
+        icon: Icon(Icons.undo),
+        onPressed: canEdit && editor.canUndo ? editor.undo : null,
+      ),
+      IconButton(
+        visualDensity: VisualDensity.compact,
+        color: Colors.deepPurple,
+        disabledColor: Colors.black26,
+        tooltip: 'Redo',
+        icon: Icon(Icons.redo),
+        onPressed: canEdit && editor.canRedo ? editor.redo : null,
+      ),
+    ];
+  }
+
+  List<Widget> sequenceButtons() {
     return [
       IconButton(
         color: Colors.deepPurple,
-        onPressed: () => playback.step(-1),
+        onPressed: () => editor.playback.step(-1),
         icon: const Icon(Icons.skip_previous),
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: playback.toggle,
-        icon: Icon(playback.playing ? Icons.pause : Icons.play_arrow),
+        onPressed: editor.playback.toggle,
+        icon: Icon(editor.playback.playing ? Icons.pause : Icons.play_arrow),
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: playback.step,
+        onPressed: editor.playback.step,
         icon: Icon(Icons.skip_next),
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: playback.slowDown,
+        onPressed: editor.playback.slowDown,
         icon: Icon(Icons.fast_rewind),
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: playback.speedUp,
+        onPressed: editor.playback.speedUp,
         icon: Icon(Icons.fast_forward),
       ),
     ];
