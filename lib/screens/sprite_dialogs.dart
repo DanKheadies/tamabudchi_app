@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
 typedef SpriteDetails = ({String name, int gridSize});
@@ -59,6 +60,16 @@ Future<bool> confirmDeleteSprite(BuildContext context, Sprite sprite) async {
   return confirmed ?? false;
 }
 
+Future<ImportResult?> showImportDialog(
+  BuildContext context,
+  SpriteLibrary library,
+) {
+  return showDialog<ImportResult>(
+    context: context,
+    builder: (_) => _ImportDialog(library: library),
+  );
+}
+
 class _SpriteDialog extends StatefulWidget {
   final String title;
   final String confirmLabel;
@@ -83,11 +94,6 @@ class _SpriteDialogState extends State<_SpriteDialog> {
   int _gridSize = 5;
 
   bool get _valid => _name.text.trim().isNotEmpty;
-
-  void _submit() {
-    if (!_valid) return;
-    Navigator.of(context).pop((name: _name.text.trim(), gridSize: _gridSize));
-  }
 
   @override
   void dispose() {
@@ -140,5 +146,101 @@ class _SpriteDialogState extends State<_SpriteDialog> {
         ),
       ],
     );
+  }
+
+  void _submit() {
+    if (!_valid) return;
+    Navigator.of(context).pop((name: _name.text.trim(), gridSize: _gridSize));
+  }
+}
+
+class _ImportDialog extends StatefulWidget {
+  final SpriteLibrary library;
+
+  const _ImportDialog({required this.library});
+
+  @override
+  State<_ImportDialog> createState() => _ImportDialogState();
+}
+
+class _ImportDialogState extends State<_ImportDialog> {
+  final TextEditingController _text = TextEditingController();
+  String? _error;
+
+  bool get _hasText => _text.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Import sprites'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Paste sprite data copied from another device or a backup. '
+            'Nothing you already have will be overwritten.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _text,
+            minLines: 3,
+            maxLines: 6,
+            decoration: InputDecoration(
+              hintText: 'Paste here',
+              border: const OutlineInputBorder(),
+              errorText: _error,
+              errorMaxLines: 3,
+            ),
+            onChanged: (_) => setState(() => _error = null),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _paste,
+              icon: const Icon(Icons.content_paste),
+              label: const Text('Paste from clipboard'),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _hasText ? _import : null,
+          child: const Text('Import'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _paste() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final pasted = data?.text;
+    if (pasted == null || !mounted) return;
+
+    setState(() {
+      _text.text = pasted;
+      _error = null;
+    });
+  }
+
+  void _import() {
+    try {
+      final result = widget.library.importJson(_text.text);
+      Navigator.of(context).pop(result);
+    } on FormatException catch (e) {
+      setState(() => _error = e.message);
+    }
   }
 }
