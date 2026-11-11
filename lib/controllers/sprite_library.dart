@@ -67,7 +67,8 @@ class SpriteLibrary extends ChangeNotifier {
   }
 
   /// Turn stored/imported JSON into a safe Sprite (or null if unusable).
-  /// Fixes what can be fixed: out-of-range pixels, missing frame(s), no name.
+  /// Fixes what can be fixed: out-of-range pixels, missing frame(s), no name,
+  /// blank folder names.
   Sprite? _parseSprite(Object? item) {
     try {
       final Sprite sprite = Sprite.fromJson(item as Map<String, dynamic>);
@@ -99,20 +100,71 @@ class SpriteLibrary extends ChangeNotifier {
 
   // ---- structure changes ------
 
-  /// Make a new blank sprite (one empty frame) and return it. It starts on
-  /// the desktop and in no folder.
-  Sprite create({required String name, required int gridSize}) {
+  /// Make a new blank sprite (one empty frame) and return it.
+  /// Made while looking inside a folder? Pass it as [folder] and the sprite is
+  /// filed there. Otherwise it starts on the desktop in no folder.
+  Sprite create({required String name, required int gridSize, String? folder}) {
     final Sprite sprite = Sprite(
       id: _newId(),
       name: name.trim(),
       gridSize: gridSize.clamp(minGridSize, maxGridSize),
       frames: [<int>{}],
+      folders: folder == null ? const {} : {folder},
+      onDesktop: folder == null,
     );
     _sprites = [..._sprites, sprite];
     _structureChanged();
     return sprite;
   }
 
+  /// Rename a folder everywhere it's used. If another folder already has the
+  /// new name (ignoring case) the two merge, keeping that folder's spelling.
+  /// Returns the name the folder ended up with.
+  String renameFolder(String from, String to) {
+    final target = to.trim();
+    if (target.isEmpty || target == from) return from;
+
+    final lower = target.toLowerCase();
+    final other = folders.where((f) => f != from && f.toLowerCase() == lower);
+    final name = other.isEmpty ? target : other.first;
+
+    _sprites = [
+      for (final s in _sprites)
+        if (!s.folders.contains(from))
+          s
+        else
+          s.copyWith(
+            folders: {for (final f in s.folders) f == from ? name : f},
+          ),
+    ];
+    _structureChanged();
+    return name;
+  }
+
+  /// Delete a sprite.
+  void delete(String id) {
+    _sprites = _sprites.where((s) => s.id != id).toList();
+    _structureChanged();
+  }
+
+  /// Remove a folder from every sprite. The sprites themselves are kept.
+  void deleteFolder(String name) {
+    _sprites = [
+      for (final s in _sprites)
+        if (!s.folders.contains(name))
+          s
+        else
+          s.copyWith(
+            folders: {...s.folders}..remove(name),
+            // Never leave a sprite nowhere: with no folder left, it goes
+            // back to the desktop.
+            onDesktop: s.onDesktop || s.folders.length == 1,
+          ),
+    ];
+    _structureChanged();
+  }
+
+  /// Rename a sprite.
   void rename(String id, String name) {
     final trimmed = name.trim();
     final i = _sprites.indexWhere((s) => s.id == id);
@@ -134,11 +186,6 @@ class SpriteLibrary extends ChangeNotifier {
 
     _sprites = List.of(_sprites)
       ..[i] = _sprites[i].copyWith(folders: folders, onDesktop: onDesktop);
-    _structureChanged();
-  }
-
-  void delete(String id) {
-    _sprites = _sprites.where((s) => s.id != id).toList();
     _structureChanged();
   }
 
@@ -259,6 +306,18 @@ class SpriteLibrary extends ChangeNotifier {
 
   // ---- autosave from the editor ------
 
+  /// Save any pending changes now, then tell listeners (so the library screen
+  /// can refresh thumbnails and frame counts).
+  Future<void> flush() async {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    if (!_dirty) return;
+
+    _dirty = false;
+    await _save();
+    notifyListeners();
+  }
+
   /// Replace a sprite with an edited version (matched by id). Saved after a
   /// short pause; call [flush] to save right now.
   void update(Sprite sprite) {
@@ -270,18 +329,6 @@ class SpriteLibrary extends ChangeNotifier {
 
     _saveTimer?.cancel();
     _saveTimer = Timer(_saveDelay, () => unawaited(flush()));
-  }
-
-  /// Save any pending changes now, then tell listeners (so the library screen
-  /// can refresh thumbnails and frame counts).
-  Future<void> flush() async {
-    _saveTimer?.cancel();
-    _saveTimer = null;
-    if (!_dirty) return;
-
-    _dirty = false;
-    await _save();
-    notifyListeners();
   }
 
   // ---- storage ------

@@ -2,15 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
-enum _LibraryAction { copyAll, import }
+enum _LibraryAction { copyAll, deleteFolder, import, renameFolder }
 
 enum _TileAction { copy, delete, organize, rename }
 
+enum _Scope { all, desktop, folder }
+
+typedef _View = ({_Scope scope, String? folder});
+
+const _View _desktopView = (scope: _Scope.desktop, folder: null);
+const _View _allView = (scope: _Scope.all, folder: null);
+
 /// Home screen: every saved sprite, plus the only place new ones are made.
-class LibraryScreen extends StatelessWidget {
+class LibraryScreen extends StatefulWidget {
   final SpriteLibrary library;
 
   const LibraryScreen({super.key, required this.library});
+
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
+  SpriteLibrary get library => widget.library;
+
+  _View _view = _desktopView;
 
   @override
   Widget build(BuildContext context) {
@@ -22,33 +38,53 @@ class LibraryScreen extends StatelessWidget {
             onSelected: (action) {
               switch (action) {
                 case _LibraryAction.copyAll:
-                  _copyAll(context);
+                  _copyAll();
+                case _LibraryAction.deleteFolder:
+                  _deleteFolder();
                 case _LibraryAction.import:
-                  _import(context);
+                  _import();
+                case _LibraryAction.renameFolder:
+                  _renameFolder();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
+            itemBuilder: (context) => [
+              const PopupMenuItem(
                 value: _LibraryAction.copyAll,
                 child: Text('Copy all sprites'),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: _LibraryAction.import,
                 child: Text('Import sprites..'),
               ),
+              if (_view.folder != null) ...[
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: _LibraryAction.renameFolder,
+                  child: Text('Rename the folder'),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryAction.deleteFolder,
+                  child: Text('Delete this folder'),
+                ),
+              ],
             ],
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _create(context),
+        onPressed: _create,
         icon: const Icon(Icons.add),
         label: const Text('New sprite'),
       ),
       body: ListenableBuilder(
         listenable: library,
         builder: (context, _) {
+          final folders = library.folders;
           final sprites = library.sprites;
+
+          if (_view.scope == _Scope.folder && !folders.contains(_view.folder)) {
+            _view = _allView;
+          }
 
           if (sprites.isEmpty) {
             return const Center(
@@ -60,30 +96,58 @@ class LibraryScreen extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 96), // clear the button
-            itemCount: sprites.length,
-            itemBuilder: (context, i) {
-              final sprite = sprites[i];
-              return _SpriteTile(
-                // Keyed by id so a tile's preview state stays with its own
-                // sprite when the list changes.
-                key: ValueKey(sprite.id),
-                sprite: sprite,
-                onOpen: () => _open(context, sprite),
-                onRename: () => _rename(context, sprite),
-                onOrganize: () => _organize(context, sprite),
-                onCopy: () => _copyOne(context, sprite),
-                onDelete: () => _delete(context, sprite),
-              );
-            },
+          final visible = [
+            for (final s in sprites)
+              if (_inView(s, _view)) s,
+          ];
+
+          return Column(
+            children: [
+              _viewChips(sprites, folders),
+              Expanded(
+                child: visible.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Nothing on your desktop.\n'
+                          'New sprites start here.\n'
+                          'Tap "All" to see everything.',
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView.builder(
+                        // clear the New sprite button
+                        padding: const EdgeInsets.only(bottom: 96),
+                        itemCount: visible.length,
+                        itemBuilder: (context, i) {
+                          final sprite = visible[i];
+                          return _SpriteTile(
+                            // Keyed by id so a tile's preview state stays with
+                            // its own sprite when the list changes.
+                            key: ValueKey(sprite.id),
+                            sprite: sprite,
+                            onOpen: () => _open(sprite),
+                            onRename: () => _rename(sprite),
+                            onOrganize: () => _organize(sprite),
+                            onCopy: () => _copyOne(sprite),
+                            onDelete: () => _delete(sprite),
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  Future<void> _create(BuildContext context) async {
+  bool _inView(Sprite sprite, _View view) => switch (view.scope) {
+    _Scope.desktop => sprite.onDesktop,
+    _Scope.all => true,
+    _Scope.folder => sprite.folders.contains(view.folder),
+  };
+
+  Future<void> _create() async {
     final details = await showNewSpriteDialog(
       context,
       suggestedName: 'Sprite ${library.sprites.length + 1}',
@@ -93,18 +157,19 @@ class LibraryScreen extends StatelessWidget {
     final sprite = library.create(
       name: details.name,
       gridSize: details.gridSize,
+      folder: _view.folder,
     );
     // A blank sprite is only useful to draw on, so open it ready to edit.
-    _open(context, sprite, startEditing: true);
+    _open(sprite, startEditing: true);
   }
 
-  Future<void> _delete(BuildContext context, Sprite sprite) async {
+  Future<void> _delete(Sprite sprite) async {
     if (await confirmDeleteSprite(context, sprite)) {
       library.delete(sprite.id);
     }
   }
 
-  Future<void> _organize(BuildContext context, Sprite sprite) async {
+  Future<void> _organize(Sprite sprite) async {
     final result = await showOrganizeDialog(
       context,
       sprite: sprite,
@@ -119,12 +184,12 @@ class LibraryScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _rename(BuildContext context, Sprite sprite) async {
+  Future<void> _rename(Sprite sprite) async {
     final name = await showRenameDialog(context, sprite.name);
     if (name != null) library.rename(sprite.id, name);
   }
 
-  void _open(BuildContext context, Sprite sprite, {bool startEditing = false}) {
+  void _open(Sprite sprite, {bool startEditing = false}) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => EditorScreen(
@@ -136,46 +201,104 @@ class LibraryScreen extends StatelessWidget {
     );
   }
 
-  void _toast(BuildContext context, String message) {
+  void _toast(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Desktop, All, then one chip per folder, each with its sprite count.
+  Widget _viewChips(List<Sprite> sprites, List<String> folders) {
+    Widget chip(String label, int count, _View view) => ChoiceChip(
+      label: Text('$label · $count'),
+      selected: _view == view,
+      onSelected: (_) => setState(() => _view = view),
+    );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        spacing: 8,
+        children: [
+          chip(
+            'Desktop',
+            sprites.where((s) => s.onDesktop).length,
+            _desktopView,
+          ),
+          chip('All', sprites.length, _allView),
+          for (final folder in folders)
+            chip(
+              folder,
+              sprites.where((s) => s.folders.contains(folder)).length,
+              (scope: _Scope.folder, folder: folder),
+            ),
+        ],
+      ),
+    );
+  }
+
   // ---- export / import ------
 
-  Future<void> _copyAll(BuildContext context) async {
+  Future<void> _copyAll() async {
     final count = library.sprites.length;
     if (count == 0) {
-      _toast(context, 'Nothing to copy yet.');
+      _toast('Nothing to copy yet.');
       return;
     }
 
     await Clipboard.setData(ClipboardData(text: library.exportJson()));
-    if (!context.mounted) return;
+    if (!mounted) return;
     _toast(
-      context,
       'Copied $count ${count == 1 ? 'sprite' : 'sprites'}. '
       'Paste them into a note or message to back up or move them.',
     );
   }
 
-  Future<void> _copyOne(BuildContext context, Sprite sprite) async {
+  Future<void> _copyOne(Sprite sprite) async {
     await Clipboard.setData(
       ClipboardData(text: library.exportJson(onlyId: sprite.id)),
     );
-    if (!context.mounted) return;
-    _toast(context, 'Copied "${sprite.name}".');
+    if (!mounted) return;
+    _toast('Copied "${sprite.name}".');
   }
 
-  Future<void> _import(BuildContext context) async {
+  Future<void> _import() async {
     final result = await showImportDialog(context, library);
     if (result == null || !context.mounted) return;
 
     final parts = ['Added ${result.added}'];
     if (result.duplicates > 0) parts.add('${result.duplicates} already here');
     if (result.unreadable > 0) parts.add('${result.unreadable} unreadable');
-    _toast(context, parts.join(' · '));
+    _toast(parts.join(' · '));
+  }
+
+  // ---- folders ------
+
+  Future<void> _renameFolder() async {
+    final old = _view.folder;
+    if (old == null) return;
+
+    final name = await showRenameFolderDialog(context, old);
+    if (name == null || !mounted) return;
+
+    // Stay on the folder, under whatever name it ended up with.
+    final result = library.renameFolder(old, name);
+    setState(() => _view = (scope: _Scope.folder, folder: result));
+  }
+
+  Future<void> _deleteFolder() async {
+    final folder = _view.folder;
+    if (folder == null) return;
+
+    final count = library.sprites
+        .where((s) => s.folders.contains(folder))
+        .length;
+    final confirmed = await confirmDeleteFolder(context, folder, count);
+    if (!confirmed || !mounted) return;
+
+    library.deleteFolder(folder);
+    setState(() => _view = _allView);
   }
 }
 
