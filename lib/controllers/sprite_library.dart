@@ -38,6 +38,10 @@ class SpriteLibrary extends ChangeNotifier {
   Timer? _saveTimer;
 
   List<Sprite> get sprites => List.unmodifiable(_sprites);
+  List<String> get folders {
+    final names = {for (final s in _sprites) ...s.folders};
+    return names.toList()..sort(compareFolderNames);
+  }
 
   // ---- loading ------
 
@@ -82,6 +86,10 @@ class SpriteLibrary extends ChangeNotifier {
       return sprite.copyWith(
         name: name.isEmpty ? 'Untitled' : name,
         frames: frames.isEmpty ? [<int>{}] : frames,
+        folders: {
+          for (final f in sprite.folders)
+            if (f.trim().isNotEmpty) f.trim(),
+        },
       );
     } catch (e) {
       debugPrint('Skipping an unreadable sprite: $e');
@@ -91,7 +99,8 @@ class SpriteLibrary extends ChangeNotifier {
 
   // ---- structure changes ------
 
-  /// Make a new blank sprite (one empty frame) and return it.
+  /// Make a new blank sprite (one empty frame) and return it. It starts on
+  /// the desktop and in no folder.
   Sprite create({required String name, required int gridSize}) {
     final Sprite sprite = Sprite(
       id: _newId(),
@@ -110,6 +119,21 @@ class SpriteLibrary extends ChangeNotifier {
     if (trimmed.isEmpty || i == -1) return;
 
     _sprites = List.of(_sprites)..[i] = _sprites[i].copyWith(name: trimmed);
+    _structureChanged();
+  }
+
+  /// Set which folders a sprite is in and whether it's on the desktop i.e.
+  /// "leaves the desktop when first filed."
+  void setOrganization(
+    String id, {
+    required Set<String> folders,
+    required bool onDesktop,
+  }) {
+    final i = _sprites.indexWhere((s) => s.id == id);
+    if (i == -1) return;
+
+    _sprites = List.of(_sprites)
+      ..[i] = _sprites[i].copyWith(folders: folders, onDesktop: onDesktop);
     _structureChanged();
   }
 
@@ -140,11 +164,22 @@ class SpriteLibrary extends ChangeNotifier {
     });
   }
 
+  /// What makes two sprites "the same drawing": name, size, and frames.
+  /// Folders and desktop are organization, not content, so they're ignored.
+  String _drawingKey(Sprite s) => jsonEncode({
+    'name': s.name,
+    'gridSize': s.gridSize,
+    'frames': [for (final f in s.frames) f.toList()..sort()],
+  });
+
   /// Add the sprites in [text] (output of [exportJson]) to the library.
   ///
   /// Never overwrites anything:
-  ///  - a sprite that's already here, unchanged, is skipped;
-  ///  - a sprite with a known id but different content is added as a copy.
+  ///  - a sprite that's already here with the same drawing is skipped (the
+  ///    folders on this device win);
+  ///  - a sprite with a known id but a different drawing is added as a copy.
+  ///
+  /// Imported folder names are matched to existing ones ignoring case.
   ///
   /// Throws a [FormatException] with a readable message if [text] isn't
   /// valid export data.
@@ -176,21 +211,28 @@ class SpriteLibrary extends ChangeNotifier {
     var unreadable = 0;
     final next = List.of(_sprites);
     final known = {for (final s in next) s.id: s};
+    final spelling = {for (final f in folders) f.toLowerCase(): f};
 
     for (final item in data['sprites'] as List) {
-      final sprite = _parseSprite(item);
-      if (sprite == null) {
+      final parsed = _parseSprite(item);
+      if (parsed == null) {
         unreadable++;
         continue;
       }
+      final sprite = parsed.copyWith(
+        folders: {
+          for (final f in parsed.folders)
+            spelling.putIfAbsent(f.toLowerCase(), () => f),
+        },
+      );
 
       final existing = known[sprite.id];
       if (existing == null) {
         next.add(sprite);
         known[sprite.id] = sprite;
         added++;
-      } else if (jsonEncode(existing.toJson()) == jsonEncode(sprite.toJson())) {
-        duplicates++; // same sprite, nothing to do
+      } else if (_drawingKey(existing) == _drawingKey(sprite)) {
+        duplicates++; // same drawing, nothing to do
       } else {
         // Same id but different content (edited on another device): keep
         // both rather than overwrite either.
@@ -199,6 +241,8 @@ class SpriteLibrary extends ChangeNotifier {
           name: '${sprite.name} (imported)',
           gridSize: sprite.gridSize,
           frames: sprite.frames,
+          folders: sprite.folders,
+          onDesktop: sprite.onDesktop,
         );
         next.add(copy);
         known[copy.id] = copy;

@@ -1,23 +1,35 @@
+/// Core model; includes static and dynamic
 class Sprite {
-  final String id;
-  final String name;
+  final bool onDesktop;
   final int gridSize;
   final List<Set<int>> frames;
+  final Set<String> folders;
+  final String id;
+  final String name;
 
   const Sprite({
     required this.id,
     required this.name,
     required this.gridSize,
     required this.frames,
+    this.folders = const {},
+    this.onDesktop = true, // new sprites start on desktop
   });
 
   int get frameCount => frames.length;
 
-  Sprite copyWith({String? name, List<Set<int>>? frames}) => Sprite(
+  Sprite copyWith({
+    bool? onDesktop,
+    List<Set<int>>? frames,
+    Set<String>? folders,
+    String? name,
+  }) => Sprite(
     id: id,
     name: name ?? this.name,
     gridSize: gridSize, // fixed at creation
     frames: frames ?? this.frames,
+    folders: folders ?? this.folders,
+    onDesktop: onDesktop ?? this.onDesktop,
   );
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +37,8 @@ class Sprite {
     'name': name,
     'gridSize': gridSize,
     'frames': [for (final f in frames) f.toList()..sort()],
+    'folders': folders.toList()..sort(compareFolderNames),
+    'onDesktop': onDesktop,
   };
 
   factory Sprite.fromJson(Map<String, dynamic> j) {
@@ -40,6 +54,15 @@ class Sprite {
               if (i as int < size * size) i,
           },
       ],
+      folders: {
+        for (final f in (j['folders'] as List?) ?? const []) f as String,
+      },
+      onDesktop: (j['onDesktop'] as bool?) ?? true,
     );
   }
 }
+
+/// Case-insensitive ordering for folder names, so "char_1" sorts next to
+/// "CHAR_1" instead of after every capital letter.
+int compareFolderNames(String a, String b) =>
+    a.toLowerCase().compareTo(b.toLowerCase());

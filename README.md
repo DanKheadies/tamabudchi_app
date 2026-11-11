@@ -12,11 +12,10 @@ A seed is an egg for a bud. Help your bud grow buds and do dank things.
 
 ### Special Thanks:
 
+- [Claude](https://claude.ai/)
 - [Flutter](https://flutter.dev/)
-- Stack Overflow
-- GitHub
+- [GitHub](https://https://github.com/DanKheadies)
 - Google
-- Claude
 
 ---
 

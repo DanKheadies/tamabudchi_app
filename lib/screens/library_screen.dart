@@ -4,7 +4,7 @@ import 'package:tamabudchi_app/barrel.dart';
 
 enum _LibraryAction { copyAll, import }
 
-enum _TileAction { copy, delete, rename }
+enum _TileAction { copy, delete, organize, rename }
 
 /// Home screen: every saved sprite, plus the only place new ones are made.
 class LibraryScreen extends StatelessWidget {
@@ -66,9 +66,13 @@ class LibraryScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               final sprite = sprites[i];
               return _SpriteTile(
+                // Keyed by id so a tile's preview state stays with its own
+                // sprite when the list changes.
+                key: ValueKey(sprite.id),
                 sprite: sprite,
                 onOpen: () => _open(context, sprite),
                 onRename: () => _rename(context, sprite),
+                onOrganize: () => _organize(context, sprite),
                 onCopy: () => _copyOne(context, sprite),
                 onDelete: () => _delete(context, sprite),
               );
@@ -97,6 +101,21 @@ class LibraryScreen extends StatelessWidget {
   Future<void> _delete(BuildContext context, Sprite sprite) async {
     if (await confirmDeleteSprite(context, sprite)) {
       library.delete(sprite.id);
+    }
+  }
+
+  Future<void> _organize(BuildContext context, Sprite sprite) async {
+    final result = await showOrganizeDialog(
+      context,
+      sprite: sprite,
+      knownFolders: library.folders,
+    );
+    if (result != null) {
+      library.setOrganization(
+        sprite.id,
+        folders: result.folders,
+        onDesktop: result.onDesktop,
+      );
     }
   }
 
@@ -164,13 +183,16 @@ class _SpriteTile extends StatefulWidget {
   final Sprite sprite;
   final VoidCallback onOpen;
   final VoidCallback onRename;
+  final VoidCallback onOrganize;
   final VoidCallback onCopy;
   final VoidCallback onDelete;
 
   const _SpriteTile({
+    super.key,
     required this.sprite,
     required this.onOpen,
     required this.onRename,
+    required this.onOrganize,
     required this.onCopy,
     required this.onDelete,
   });
@@ -197,7 +219,14 @@ class _SpriteTileState extends State<_SpriteTile> {
     final sprite = widget.sprite;
     final frames = sprite.frameCount;
 
+    // Where this sprite lives: the desktop and/or its folders.
+    final places = [
+      if (sprite.onDesktop) 'Desktop',
+      ...sprite.folders.toList()..sort(compareFolderNames),
+    ];
+
     return ListTile(
+      isThreeLine: places.isNotEmpty,
       leading: SizedBox.square(
         dimension: 48,
         child: _previewing
@@ -211,9 +240,22 @@ class _SpriteTileState extends State<_SpriteTile> {
               ),
       ),
       title: Text(sprite.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${sprite.gridSize} × ${sprite.gridSize} · '
-        '$frames ${frames == 1 ? 'frame' : 'frames'}',
+      subtitle: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${sprite.gridSize} × ${sprite.gridSize} · '
+            '$frames ${frames == 1 ? 'frame' : 'frames'}',
+          ),
+          if (places.isNotEmpty)
+            Text(
+              places.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+        ],
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -232,12 +274,18 @@ class _SpriteTileState extends State<_SpriteTile> {
                   widget.onCopy();
                 case _TileAction.delete:
                   widget.onDelete();
+                case _TileAction.organize:
+                  widget.onOrganize();
                 case _TileAction.rename:
                   widget.onRename();
               }
             },
             itemBuilder: (context) => const [
               PopupMenuItem(value: _TileAction.rename, child: Text('Rename')),
+              PopupMenuItem(
+                value: _TileAction.organize,
+                child: Text('Folders & desktop…'),
+              ),
               PopupMenuItem(value: _TileAction.copy, child: Text('Copy')),
               PopupMenuItem(value: _TileAction.delete, child: Text('Delete')),
             ],
