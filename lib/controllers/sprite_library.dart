@@ -28,14 +28,21 @@ class SpriteLibrary extends ChangeNotifier {
   static const int _hardMaxGridSize = 64;
   static const Duration _saveDelay = Duration(milliseconds: 600);
   static const String _exportApp = 'tamabudchi';
+  static const String _sortKey = 'sprites_sort_az';
   static const String _storageKey = 'sprites_v1';
 
   final SharedPreferencesAsync _prefs;
 
   bool _dirty = false;
+  bool _sortAlphabetically = false;
   int _idSeq = 0;
   List<Sprite> _sprites = [];
   Timer? _saveTimer;
+
+  /// Whether the library screen shows sprites A–Z instead of in the order the
+  /// person arranged them. The arranged order is kept and returns when this
+  /// is turned off.
+  bool get sortAlphabetically => _sortAlphabetically;
 
   List<Sprite> get sprites => List.unmodifiable(_sprites);
   List<String> get folders {
@@ -63,6 +70,7 @@ class SpriteLibrary extends ChangeNotifier {
         _sprites = [];
       }
     }
+    _sortAlphabetically = await _prefs.getBool(_sortKey) ?? false;
     notifyListeners();
   }
 
@@ -99,6 +107,17 @@ class SpriteLibrary extends ChangeNotifier {
   }
 
   // ---- structure changes ------
+
+  /// Switch between A–Z and your own order, and remember the choice.
+  Future<void> setSortAlphabetically(bool value) async {
+    _sortAlphabetically = value;
+    notifyListeners();
+    try {
+      await _prefs.setBool(_sortKey, value);
+    } catch (e) {
+      debugPrint('Could not save the sort setting: $e');
+    }
+  }
 
   /// Make a new blank sprite (one empty frame) and return it.
   /// Made while looking inside a folder? Pass it as [folder] and the sprite is
@@ -161,6 +180,32 @@ class SpriteLibrary extends ChangeNotifier {
             onDesktop: s.onDesktop || s.folders.length == 1,
           ),
     ];
+    _structureChanged();
+  }
+
+  /// Move a sprite within a filtered view, keeping ONE order for the whole
+  /// library. [visibleIds] are the sprites showing, in display order; [from]
+  /// and [to] are positions in that list ([to] is the final position).
+  /// Sprites that aren't in the view stay exactly where they are: the visible
+  /// ones just rearrange themselves among the slots they already occupy.
+  void moveWithin(List<String> visibleIds, int from, int to) {
+    if (from == to) return;
+
+    final byId = {for (final s in _sprites) s.id: s};
+    final slots = [
+      for (final id in visibleIds) _sprites.indexWhere((s) => s.id == id),
+    ];
+    if (slots.contains(-1)) return;
+    slots.sort();
+
+    final order = List.of(visibleIds);
+    order.insert(to, order.removeAt(from));
+
+    final next = List.of(_sprites);
+    for (var i = 0; i < slots.length; i++) {
+      next[slots[i]] = byId[order[i]]!;
+    }
+    _sprites = next;
     _structureChanged();
   }
 

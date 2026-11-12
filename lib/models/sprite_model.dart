@@ -66,3 +66,23 @@ class Sprite {
 /// "CHAR_1" instead of after every capital letter.
 int compareFolderNames(String a, String b) =>
     a.toLowerCase().compareTo(b.toLowerCase());
+
+/// Natural, case-insensitive name order: runs of digits compare as numbers,
+/// so "CHAR_2" sorts before "CHAR_10".
+int compareNames(String a, String b) {
+  final parts = RegExp(r'(\d+)|(\D+)');
+  final pa = [for (final m in parts.allMatches(a.toLowerCase())) m[0]!];
+  final pb = [for (final m in parts.allMatches(b.toLowerCase())) m[0]!];
+
+  for (var i = 0; i < pa.length && i < pb.length; i++) {
+    final x = pa[i];
+    final y = pb[i];
+    final xNum = int.tryParse(x);
+    final yNum = int.tryParse(y);
+    final c = (xNum != null && yNum != null)
+        ? xNum.compareTo(yNum)
+        : x.compareTo(y);
+    if (c != 0) return c;
+  }
+  return pa.length.compareTo(pb.length);
+}
