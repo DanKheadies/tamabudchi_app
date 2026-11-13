@@ -19,6 +19,7 @@ class TamaGrid extends StatelessWidget {
               frames: editor.sprite.frames,
               gridSize: editor.gridSize,
               onionSkin: editor.showOnionSkin,
+              baseFrameDuration: Duration(milliseconds: editor.frameMs),
             ),
             if (editor.canEdit) ...[
               Positioned.fill(

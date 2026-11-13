@@ -25,6 +25,7 @@ class SpriteEditor extends ChangeNotifier {
   bool get editing => _editing;
   bool get onionSkin => _onionSkin;
   Sprite get sprite => _sprite;
+  int get frameMs => _sprite.frameMs;
   int get gridSize => _sprite.gridSize;
   Set<int> get currentFrame => _sprite.frames[playback.frameIndex];
 
@@ -210,6 +211,31 @@ class SpriteEditor extends ChangeNotifier {
     playback.frameCount = frames.length; // keep playback in step with sprite
     playback.jumpTo(select);
     notifyListeners();
+  }
+
+  // ---- speed --------------------------------------------------------------
+
+  /// Set how long each frame is shown. Saved with the sprite (the screen's
+  /// autosave sees the new Sprite). Deliberately not part of undo / redo:
+  /// that history is for drawing and frame changes.
+  void setFrameMs(int ms) {
+    final clamped = ms.clamp(Sprite.minFrameMs, Sprite.maxFrameMs);
+    if (clamped == _sprite.frameMs) return;
+
+    _sprite = _sprite.copyWith(frameMs: clamped);
+    notifyListeners();
+  }
+
+  /// One notch is about 15%, rounded to 10 ms, and always at least 10 ms so
+  /// small values can't get stuck. (Shorter frame time = faster.)
+  void speedUp() => setFrameMs(_notch(faster: true));
+  void slowDown() => setFrameMs(_notch(faster: false));
+
+  int _notch({required bool faster}) {
+    final ms = _sprite.frameMs;
+    var next = ((faster ? ms / 1.15 : ms * 1.15) / 10).round() * 10;
+    if (next == ms) next += faster ? -10 : 10;
+    return next; // setFrameMs clamps it
   }
 
   @override

@@ -54,7 +54,7 @@ class _PixelAnimationState extends State<PixelAnimation>
   void onTick(Duration elapsed) {
     final dt = elapsed - lastElapsed;
     lastElapsed = elapsed;
-    accumulated += dt * controller.speed;
+    accumulated += dt; // * controller.speed;
     while (accumulated >= widget.baseFrameDuration) {
       accumulated -= widget.baseFrameDuration;
       controller.advance();

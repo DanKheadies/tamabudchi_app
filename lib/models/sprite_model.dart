@@ -1,11 +1,16 @@
 /// Core model; includes static and dynamic
 class Sprite {
   final bool onDesktop;
+  final int frameMs;
   final int gridSize;
   final List<Set<int>> frames;
   final Set<String> folders;
   final String id;
   final String name;
+
+  static const int defaultFrameMs = 400;
+  static const int minFrameMs = 20;
+  static const int maxFrameMs = 5000;
 
   const Sprite({
     required this.id,
@@ -14,12 +19,14 @@ class Sprite {
     required this.frames,
     this.folders = const {},
     this.onDesktop = true, // new sprites start on desktop
+    this.frameMs = defaultFrameMs,
   });
 
   int get frameCount => frames.length;
 
   Sprite copyWith({
     bool? onDesktop,
+    int? frameMs,
     List<Set<int>>? frames,
     Set<String>? folders,
     String? name,
@@ -28,6 +35,7 @@ class Sprite {
     name: name ?? this.name,
     gridSize: gridSize, // fixed at creation
     frames: frames ?? this.frames,
+    frameMs: frameMs ?? this.frameMs,
     folders: folders ?? this.folders,
     onDesktop: onDesktop ?? this.onDesktop,
   );
@@ -37,6 +45,7 @@ class Sprite {
     'name': name,
     'gridSize': gridSize,
     'frames': [for (final f in frames) f.toList()..sort()],
+    'frameMs': frameMs,
     'folders': folders.toList()..sort(compareFolderNames),
     'onDesktop': onDesktop,
   };
@@ -54,6 +63,7 @@ class Sprite {
               if (i as int < size * size) i,
           },
       ],
+      frameMs: (j['frameMs'] as num?)?.round() ?? defaultFrameMs,
       folders: {
         for (final f in (j['folders'] as List?) ?? const []) f as String,
       },

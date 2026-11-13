@@ -200,6 +200,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final details = await showNewSpriteDialog(
       context,
       suggestedName: 'Sprite ${library.sprites.length + 1}',
+      initialGridSize: library.lastGridSize,
     );
     if (details == null || !context.mounted) return;
 
@@ -543,7 +544,8 @@ class _SpriteTileState extends State<_SpriteTile> {
         children: [
           Text(
             '${sprite.gridSize} × ${sprite.gridSize} · '
-            '$frames ${frames == 1 ? 'frame' : 'frames'}',
+            '$frames ${frames == 1 ? 'frame' : 'frames'}'
+            ' · ${sprite.frameMs}ms',
           ),
           if (places.isNotEmpty)
             Text(
@@ -626,6 +628,7 @@ class __LivePreviewState extends State<_LivePreview> {
       controller: _playback,
       frames: widget.sprite.frames,
       gridSize: widget.sprite.gridSize,
+      baseFrameDuration: Duration(milliseconds: widget.sprite.frameMs),
     );
   }
 }

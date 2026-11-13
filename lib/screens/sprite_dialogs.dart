@@ -7,6 +7,7 @@ typedef SpriteDetails = ({String name, int gridSize});
 /// Ask for a name and grid size. Null if cancelled.
 Future<SpriteDetails?> showNewSpriteDialog(
   BuildContext context, {
+  required int initialGridSize,
   required String suggestedName,
 }) {
   return showDialog<SpriteDetails>(
@@ -16,6 +17,7 @@ Future<SpriteDetails?> showNewSpriteDialog(
       confirmLabel: 'Create',
       initialName: suggestedName,
       pickGridSize: true,
+      initialGridSize: initialGridSize,
     ),
   );
 }
@@ -33,6 +35,7 @@ Future<String?> showRenameDialog(
       confirmLabel: 'Rename',
       initialName: currentName,
       pickGridSize: false,
+      initialGridSize: SpriteLibrary.defaultGridSize,
     ),
   );
   return details?.name;
@@ -71,16 +74,18 @@ Future<ImportResult?> showImportDialog(
 }
 
 class _SpriteDialog extends StatefulWidget {
-  final String title;
+  final bool pickGridSize;
+  final int initialGridSize;
   final String confirmLabel;
   final String initialName;
-  final bool pickGridSize;
+  final String title;
 
   const _SpriteDialog({
     required this.title,
     required this.confirmLabel,
     required this.initialName,
     required this.pickGridSize,
+    required this.initialGridSize,
   });
 
   @override
@@ -91,7 +96,7 @@ class _SpriteDialogState extends State<_SpriteDialog> {
   late final TextEditingController _name = TextEditingController(
     text: widget.initialName,
   );
-  int _gridSize = 5;
+  late int _gridSize = widget.initialGridSize;
 
   bool get _valid => _name.text.trim().isNotEmpty;
 

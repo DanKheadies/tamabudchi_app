@@ -21,6 +21,7 @@ class SpriteLibrary extends ChangeNotifier {
   SpriteLibrary({SharedPreferencesAsync? prefs})
     : _prefs = prefs ?? SharedPreferencesAsync();
 
+  static const int defaultGridSize = 8;
   static const int minGridSize = 3;
   static const int maxGridSize = 16;
 
@@ -28,6 +29,7 @@ class SpriteLibrary extends ChangeNotifier {
   static const int _hardMaxGridSize = 64;
   static const Duration _saveDelay = Duration(milliseconds: 600);
   static const String _exportApp = 'tamabudchi';
+  static const String _lastGridSizeKey = 'last_grid_size';
   static const String _sortKey = 'sprites_sort_az';
   static const String _storageKey = 'sprites_v1';
 
@@ -36,6 +38,7 @@ class SpriteLibrary extends ChangeNotifier {
   bool _dirty = false;
   bool _sortAlphabetically = false;
   int _idSeq = 0;
+  int _lastGridSize = defaultGridSize;
   List<Sprite> _sprites = [];
   Timer? _saveTimer;
 
@@ -43,6 +46,8 @@ class SpriteLibrary extends ChangeNotifier {
   /// person arranged them. The arranged order is kept and returns when this
   /// is turned off.
   bool get sortAlphabetically => _sortAlphabetically;
+
+  int get lastGridSize => _lastGridSize;
 
   List<Sprite> get sprites => List.unmodifiable(_sprites);
   List<String> get folders {
@@ -70,6 +75,8 @@ class SpriteLibrary extends ChangeNotifier {
         _sprites = [];
       }
     }
+    _lastGridSize = (await _prefs.getInt(_lastGridSizeKey) ?? defaultGridSize)
+        .clamp(minGridSize, maxGridSize);
     _sortAlphabetically = await _prefs.getBool(_sortKey) ?? false;
     notifyListeners();
   }
@@ -95,6 +102,7 @@ class SpriteLibrary extends ChangeNotifier {
       return sprite.copyWith(
         name: name.isEmpty ? 'Untitled' : name,
         frames: frames.isEmpty ? [<int>{}] : frames,
+        frameMs: sprite.frameMs.clamp(Sprite.minFrameMs, Sprite.maxFrameMs),
         folders: {
           for (final f in sprite.folders)
             if (f.trim().isNotEmpty) f.trim(),
@@ -107,6 +115,15 @@ class SpriteLibrary extends ChangeNotifier {
   }
 
   // ---- structure changes ------
+
+  Future<void> _rememberGridSize(int size) async {
+    _lastGridSize = size;
+    try {
+      await _prefs.setInt(_lastGridSizeKey, size);
+    } catch (e) {
+      debugPrint('Could not save the grid size: $e');
+    }
+  }
 
   /// Switch between A–Z and your own order, and remember the choice.
   Future<void> setSortAlphabetically(bool value) async {
@@ -133,6 +150,11 @@ class SpriteLibrary extends ChangeNotifier {
     );
     _sprites = [..._sprites, sprite];
     _structureChanged();
+
+    final size = gridSize.clamp(minGridSize, maxGridSize);
+    // ...use `gridSize: size` in the Sprite, then after it:
+    unawaited(_rememberGridSize(size));
+
     return sprite;
   }
 
@@ -262,6 +284,7 @@ class SpriteLibrary extends ChangeNotifier {
     'name': s.name,
     'gridSize': s.gridSize,
     'frames': [for (final f in s.frames) f.toList()..sort()],
+    'frameMs': s.frameMs,
   });
 
   /// Add the sprites in [text] (output of [exportJson]) to the library.

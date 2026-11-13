@@ -45,7 +45,7 @@ class SequenceBar extends StatelessWidget {
           child: Flex(
             direction: isHorizontal ? Axis.horizontal : Axis.vertical,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [...historyButtons(), ...sequenceButtons()],
+            children: [...historyButtons(), ...sequenceButtons(context)],
           ),
         );
       },
@@ -76,33 +76,62 @@ class SequenceBar extends StatelessWidget {
     ];
   }
 
-  List<Widget> sequenceButtons() {
+  List<Widget> sequenceButtons(BuildContext context) {
+    // Tighter while editing, when undo / redo share the bar.
+    final density = editor.editing ? VisualDensity.compact : null;
+
     return [
       IconButton(
         color: Colors.deepPurple,
-        onPressed: () => editor.playback.step(-1),
         icon: const Icon(Icons.skip_previous),
+        onPressed: () => playback.step(-1),
+        visualDensity: density,
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: editor.playback.toggle,
-        icon: Icon(editor.playback.playing ? Icons.pause : Icons.play_arrow),
+        icon: Icon(playback.playing ? Icons.pause : Icons.play_arrow),
+        onPressed: playback.toggle,
+        visualDensity: density,
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: editor.playback.step,
         icon: Icon(Icons.skip_next),
+        onPressed: playback.step,
+        visualDensity: density,
       ),
       IconButton(
         color: Colors.deepPurple,
-        onPressed: editor.playback.slowDown,
         icon: Icon(Icons.fast_rewind),
+        onPressed: editor.slowDown,
+        tooltip: 'Slower',
+        visualDensity: density,
       ),
+      Tooltip(
+        message: 'Time per frame. Tap to type an exact value.',
+        child: TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.deepPurple,
+            minimumSize: const Size(44, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            visualDensity: VisualDensity.compact,
+          ),
+          onPressed: () => _typeSpeed(context),
+          child: Text('${editor.frameMs}ms'),
+        ),
+      ),
+
       IconButton(
         color: Colors.deepPurple,
-        onPressed: editor.playback.speedUp,
         icon: Icon(Icons.fast_forward),
+        onPressed: editor.speedUp,
+        tooltip: 'Faster',
+        visualDensity: density,
       ),
     ];
+  }
+
+  Future<void> _typeSpeed(BuildContext context) async {
+    final ms = await showFrameTimeDialog(context, editor.frameMs);
+    if (ms != null) editor.setFrameMs(ms);
   }
 }
