@@ -131,7 +131,13 @@ class SequenceBar extends StatelessWidget {
   }
 
   Future<void> _typeSpeed(BuildContext context) async {
-    final ms = await showFrameTimeDialog(context, editor.frameMs);
-    if (ms != null) editor.setFrameMs(ms);
+    final result = await showFrameTimeDialog(
+      context,
+      editor.frameMs,
+      editor.jitterPercent,
+    );
+    if (result == null) return;
+    editor.setFrameMs(result.frameMs);
+    editor.setJitterPercent(result.jitterPercent);
   }
 }

@@ -625,10 +625,11 @@ class __LivePreviewState extends State<_LivePreview> {
   @override
   Widget build(BuildContext context) {
     return PixelAnimation(
+      baseFrameDuration: Duration(milliseconds: widget.sprite.frameMs),
       controller: _playback,
       frames: widget.sprite.frames,
       gridSize: widget.sprite.gridSize,
-      baseFrameDuration: Duration(milliseconds: widget.sprite.frameMs),
+      jitterPercent: widget.sprite.jitterPercent,
     );
   }
 }

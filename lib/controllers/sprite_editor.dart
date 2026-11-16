@@ -27,6 +27,7 @@ class SpriteEditor extends ChangeNotifier {
   Sprite get sprite => _sprite;
   int get frameMs => _sprite.frameMs;
   int get gridSize => _sprite.gridSize;
+  int get jitterPercent => _sprite.jitterPercent;
   Set<int> get currentFrame => _sprite.frames[playback.frameIndex];
 
   /// Must be editing and paused to edit; editing and playing acts as a preview.
@@ -214,6 +215,14 @@ class SpriteEditor extends ChangeNotifier {
   }
 
   // ---- speed --------------------------------------------------------------
+
+  void setJitterPercent(int percent) {
+    final clamped = percent.clamp(0, Sprite.maxJitterPercent);
+    if (clamped == _sprite.jitterPercent) return;
+
+    _sprite = _sprite.copyWith(jitterPercent: clamped);
+    notifyListeners();
+  }
 
   /// Set how long each frame is shown. Saved with the sprite (the screen's
   /// autosave sees the new Sprite). Deliberately not part of undo / redo:

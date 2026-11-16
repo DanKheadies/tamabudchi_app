@@ -15,7 +15,7 @@ A seed is an egg for a bud. Help your bud grow buds and do dank things.
 - [Claude](https://claude.ai/)
 - [Flutter](https://flutter.dev/)
 - [GitHub](https://https://github.com/DanKheadies)
-- Google
+- [Google](https://www.google.com/)
 
 ---
 

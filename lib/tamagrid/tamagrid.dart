@@ -15,11 +15,12 @@ class TamaGrid extends StatelessWidget {
         return Stack(
           children: [
             PixelAnimation(
+              baseFrameDuration: Duration(milliseconds: editor.frameMs),
               controller: editor.playback,
               frames: editor.sprite.frames,
               gridSize: editor.gridSize,
+              jitterPercent: editor.sprite.jitterPercent,
               onionSkin: editor.showOnionSkin,
-              baseFrameDuration: Duration(milliseconds: editor.frameMs),
             ),
             if (editor.canEdit) ...[
               Positioned.fill(

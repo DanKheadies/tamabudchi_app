@@ -3,12 +3,15 @@ class Sprite {
   final bool onDesktop;
   final int frameMs;
   final int gridSize;
+  final int jitterPercent;
   final List<Set<int>> frames;
   final Set<String> folders;
   final String id;
   final String name;
 
   static const int defaultFrameMs = 400;
+  static const int defaultJitterPercent = 0;
+  static const int maxJitterPercent = 100;
   static const int minFrameMs = 20;
   static const int maxFrameMs = 5000;
 
@@ -18,8 +21,9 @@ class Sprite {
     required this.gridSize,
     required this.frames,
     this.folders = const {},
-    this.onDesktop = true, // new sprites start on desktop
     this.frameMs = defaultFrameMs,
+    this.jitterPercent = defaultJitterPercent,
+    this.onDesktop = true, // new sprites start on desktop
   });
 
   int get frameCount => frames.length;
@@ -27,6 +31,7 @@ class Sprite {
   Sprite copyWith({
     bool? onDesktop,
     int? frameMs,
+    int? jitterPercent,
     List<Set<int>>? frames,
     Set<String>? folders,
     String? name,
@@ -37,6 +42,7 @@ class Sprite {
     frames: frames ?? this.frames,
     frameMs: frameMs ?? this.frameMs,
     folders: folders ?? this.folders,
+    jitterPercent: jitterPercent ?? this.jitterPercent,
     onDesktop: onDesktop ?? this.onDesktop,
   );
 
@@ -47,6 +53,7 @@ class Sprite {
     'frames': [for (final f in frames) f.toList()..sort()],
     'frameMs': frameMs,
     'folders': folders.toList()..sort(compareFolderNames),
+    'jitterPercent': jitterPercent,
     'onDesktop': onDesktop,
   };
 
@@ -67,6 +74,11 @@ class Sprite {
       folders: {
         for (final f in (j['folders'] as List?) ?? const []) f as String,
       },
+      jitterPercent:
+          ((j['jitterPercent'] as num?)?.round() ?? defaultJitterPercent).clamp(
+            0,
+            maxJitterPercent,
+          ),
       onDesktop: (j['onDesktop'] as bool?) ?? true,
     );
   }
