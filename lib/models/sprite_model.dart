@@ -10,10 +10,13 @@ class Sprite {
   final String name;
 
   static const int defaultFrameMs = 400;
+  static const int defaultGridSize = 8;
   static const int defaultJitterPercent = 0;
   static const int maxJitterPercent = 100;
   static const int minFrameMs = 20;
   static const int maxFrameMs = 5000;
+  static const int minGridSize = 3;
+  static const int maxGridSize = 16;
 
   const Sprite({
     required this.id,
@@ -44,6 +47,20 @@ class Sprite {
     folders: folders ?? this.folders,
     jitterPercent: jitterPercent ?? this.jitterPercent,
     onDesktop: onDesktop ?? this.onDesktop,
+  );
+
+  /// The same sprite under a new id (and optionally a new name), for making
+  /// copies. Every field is carried over, so a new field only needs adding
+  /// here and in [copyWith], both in this file.
+  Sprite withId(String newId, {String? name}) => Sprite(
+    id: newId,
+    name: name ?? this.name,
+    gridSize: gridSize,
+    frames: frames,
+    folders: folders,
+    onDesktop: onDesktop,
+    frameMs: frameMs,
+    jitterPercent: jitterPercent,
   );
 
   Map<String, dynamic> toJson() => {

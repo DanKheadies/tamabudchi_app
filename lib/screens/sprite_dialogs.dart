@@ -35,7 +35,7 @@ Future<String?> showRenameDialog(
       confirmLabel: 'Rename',
       initialName: currentName,
       pickGridSize: false,
-      initialGridSize: SpriteLibrary.defaultGridSize,
+      initialGridSize: Sprite.defaultGridSize,
     ),
   );
   return details?.name;
@@ -126,9 +126,9 @@ class _SpriteDialogState extends State<_SpriteDialog> {
             const SizedBox(height: 24),
             Text('Grid size: $_gridSize × $_gridSize'),
             Slider(
-              min: SpriteLibrary.minGridSize.toDouble(),
-              max: SpriteLibrary.maxGridSize.toDouble(),
-              divisions: SpriteLibrary.maxGridSize - SpriteLibrary.minGridSize,
+              min: Sprite.minGridSize.toDouble(),
+              max: Sprite.maxGridSize.toDouble(),
+              divisions: Sprite.maxGridSize - Sprite.minGridSize,
               value: _gridSize.toDouble(),
               label: '$_gridSize',
               onChanged: (v) => setState(() => _gridSize = v.round()),

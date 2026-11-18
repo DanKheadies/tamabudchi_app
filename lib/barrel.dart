@@ -1,3 +1,4 @@
+export 'config/_config.dart';
 export 'controllers/_controllers.dart';
 export 'models/_models.dart';
 export 'screens/_screens.dart';

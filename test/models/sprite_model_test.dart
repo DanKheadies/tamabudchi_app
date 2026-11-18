@@ -156,4 +156,9 @@ void main() {
       expect(changed.frameMs, 300);
     });
   });
+
+  test('grid size limits are in a sensible order', () {
+    expect(Sprite.minGridSize, lessThanOrEqualTo(Sprite.defaultGridSize));
+    expect(Sprite.defaultGridSize, lessThanOrEqualTo(Sprite.maxGridSize));
+  });
 }

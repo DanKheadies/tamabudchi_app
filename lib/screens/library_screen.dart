@@ -1,24 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:tamabudchi_app/barrel.dart';
 
-enum _LibraryAction { copyAll, deleteFolder, import, renameFolder }
+enum _LibraryAction { copyAll, deleteFolder, import, renameFolder, settings }
 
-enum _TileAction { copy, delete, organize, rename }
+// enum _Scope { all, desktop, folder, unfiled }
 
-enum _Scope { all, desktop, folder, unfiled }
+// typedef _View = ({_Scope scope, String? folder});
 
-typedef _View = ({_Scope scope, String? folder});
-
-const _View _allView = (scope: _Scope.all, folder: null);
-const _View _desktopView = (scope: _Scope.desktop, folder: null);
-const _View _unfiledView = (scope: _Scope.unfiled, folder: null);
+// const _View _allView = (scope: _Scope.all, folder: null);
+// const _View _desktopView = (scope: _Scope.desktop, folder: null);
+// const _View _unfiledView = (scope: _Scope.unfiled, folder: null);
 
 /// Home screen: every saved sprite, plus the only place new ones are made.
 class LibraryScreen extends StatefulWidget {
+  final AppSettings settings;
   final SpriteLibrary library;
 
-  const LibraryScreen({super.key, required this.library});
+  const LibraryScreen({
+    super.key,
+    required this.library,
+    required this.settings,
+  });
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -26,10 +32,18 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _searching = false;
-  SpriteLibrary get library => widget.library;
-  _View _view = _desktopView;
+  LibraryView _view = desktopView;
 
   final TextEditingController _queryController = TextEditingController();
+
+  // The list needs to redraw when either the sprites or a setting changes.
+  late final Listenable _changes = Listenable.merge([
+    widget.library,
+    widget.settings,
+  ]);
+
+  AppSettings get settings => widget.settings;
+  SpriteLibrary get library => widget.library;
 
   @override
   void dispose() {
@@ -96,6 +110,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     _import();
                   case _LibraryAction.renameFolder:
                     _renameFolder();
+                  case _LibraryAction.settings:
+                    showSettingsSheet(context, widget.settings);
                 }
               },
               itemBuilder: (context) => [
@@ -118,6 +134,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Text('Delete this folder'),
                   ),
                 ],
+                const PopupMenuItem(
+                  value: _LibraryAction.settings,
+                  child: Text('Show settings'),
+                ),
               ],
             ),
           ],
@@ -128,15 +148,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
           label: const Text('New sprite'),
         ),
         body: ListenableBuilder(
-          listenable: library,
+          listenable: _changes,
           builder: (context, _) {
             final folders = library.folders;
             final sprites = library.sprites;
             final tokens = _queryTokens;
 
-            if (_view.scope == _Scope.folder &&
+            if (_view.scope == LibraryScope.folder &&
                 !folders.contains(_view.folder)) {
-              _view = _allView;
+              _view = allView;
             }
 
             if (sprites.isEmpty) {
@@ -149,25 +169,31 @@ class _LibraryScreenState extends State<LibraryScreen> {
               );
             }
 
-            final sorted = library.sortAlphabetically;
+            final sorted = settings.sortAlphabetically;
 
             // Search narrows whatever view is selected. The chips are counted
             // from the matches, so you can see which views hold them.
             final matches = [
               for (final s in sprites)
-                if (_matches(s, tokens)) s,
+                if (matchesSearch(s, tokens)) s,
             ];
-            final visible = [
+            // final visible = [
+            //   for (final s in matches)
+            //     if (_inView(s, _view)) s,
+            // ];
+            // // A–Z is only a way of looking: the arranged order stays underneath.
+            // if (sorted) {
+            //   visible.sort((a, b) {
+            //     final byName = compareNames(a.name, b.name);
+            //     return byName != 0 ? byName : a.id.compareTo(b.id);
+            //   });
+            // }
+            final inView = [
               for (final s in matches)
-                if (_inView(s, _view)) s,
+                if (spriteInView(s, _view)) s,
             ];
             // A–Z is only a way of looking: the arranged order stays underneath.
-            if (sorted) {
-              visible.sort((a, b) {
-                final byName = compareNames(a.name, b.name);
-                return byName != 0 ? byName : a.id.compareTo(b.id);
-              });
-            }
+            final visible = sorted ? sortedByName(inView) : inView;
 
             return Column(
               children: [
@@ -175,10 +201,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Expanded(
                   child: visible.isEmpty
                       ? _emptyMessage(searching: tokens.isNotEmpty)
-                      : _spriteList(
-                          visible,
-                          // Dragging a search result would be ambiguous.
-                          reorderable: !sorted && tokens.isEmpty,
+                      : SlidableAutoCloseBehavior(
+                          child: _spriteList(
+                            visible,
+                            // Dragging a search result would be ambiguous.
+                            reorderable: !sorted && tokens.isEmpty,
+                          ),
                         ),
                 ),
               ],
@@ -189,18 +217,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  bool _inView(Sprite sprite, _View view) => switch (view.scope) {
-    _Scope.all => true,
-    _Scope.desktop => sprite.onDesktop,
-    _Scope.folder => sprite.folders.contains(view.folder),
-    _Scope.unfiled => sprite.folders.isEmpty,
-  };
+  // bool _inView(Sprite sprite, _View view) => switch (view.scope) {
+  //   _Scope.all => true,
+  //   _Scope.desktop => sprite.onDesktop,
+  //   _Scope.folder => sprite.folders.contains(view.folder),
+  //   _Scope.unfiled => sprite.folders.isEmpty,
+  // };
 
   Future<void> _create() async {
     final details = await showNewSpriteDialog(
       context,
       suggestedName: 'Sprite ${library.sprites.length + 1}',
-      initialGridSize: library.lastGridSize,
+      initialGridSize: settings.lastGridSize,
     );
     if (details == null || !context.mounted) return;
 
@@ -211,6 +239,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
     // A blank sprite is only useful to draw on, so open it ready to edit.
     _open(sprite, startEditing: true);
+    unawaited(settings.setLastGridSize(details.gridSize));
   }
 
   Future<void> _delete(Sprite sprite) async {
@@ -244,6 +273,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       MaterialPageRoute(
         builder: (_) => EditorScreen(
           library: library,
+          settings: widget.settings,
           sprite: sprite,
           startEditing: startEditing,
         ),
@@ -259,7 +289,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _emptyMessage({required bool searching}) {
     if (searching) {
-      final inAll = _view.scope == _Scope.all;
+      final inAll = _view.scope == LibraryScope.all;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -267,12 +297,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Text(
               inAll
                   ? 'No sprites match your search.'
-                  : 'No matches in ${_viewLabel()}.',
+                  : 'No matches in ${viewLabel(_view)}.',
               textAlign: TextAlign.center,
             ),
             if (!inAll)
               TextButton(
-                onPressed: () => setState(() => _view = _allView),
+                onPressed: () => setState(() => _view = allView),
                 child: const Text('Search all sprites'),
               ),
           ],
@@ -281,22 +311,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
 
     final text = switch (_view.scope) {
-      _Scope.desktop =>
+      LibraryScope.desktop =>
         'Nothing on your desktop.\n'
             'New sprites start here.\n'
             'Tap "All" to see everything.',
-      _Scope.unfiled => 'Every sprite is in a folder.',
+      LibraryScope.unfiled => 'Every sprite is in a folder.',
       _ => 'Nothing here.',
     };
     return Center(child: Text(text, textAlign: TextAlign.center));
   }
 
   Widget _spriteList(List<Sprite> visible, {required bool reorderable}) {
-    Widget tile(Sprite sprite) => _SpriteTile(
+    Widget tile(Sprite sprite) => SpriteTile(
       // Keyed by id so a tile's preview state stays with its own sprite when
       // the list changes.
       key: ValueKey(sprite.id),
       sprite: sprite,
+      actions: settings.tileActions,
       onOpen: () => _open(sprite),
       onRename: () => _rename(sprite),
       onOrganize: () => _organize(sprite),
@@ -332,13 +363,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   /// Desktop, All, then one chip per folder, each with its sprite count.
   Widget _viewChips(List<Sprite> sprites, List<String> folders) {
-    Widget chip(String label, int count, _View view) => ChoiceChip(
-      label: Text('$label · $count'),
+    Widget chip(String label, LibraryView view) => ChoiceChip(
+      label: Text(
+        '$label · ${sprites.where((s) => spriteInView(s, view)).length}',
+      ),
       selected: _view == view,
       onSelected: (_) => setState(() => _view = view),
     );
 
-    final sorted = library.sortAlphabetically;
+    final sorted = settings.sortAlphabetically;
 
     return Row(
       children: [
@@ -349,23 +382,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
             child: Row(
               spacing: 8,
               children: [
-                chip(
-                  'Desktop',
-                  sprites.where((s) => s.onDesktop).length,
-                  _desktopView,
-                ),
-                chip('All', sprites.length, _allView),
-                chip(
-                  'Unfiled',
-                  sprites.where((s) => s.folders.isEmpty).length,
-                  _unfiledView,
-                ),
-                for (final folder in folders)
-                  chip(
-                    folder,
-                    sprites.where((s) => s.folders.contains(folder)).length,
-                    (scope: _Scope.folder, folder: folder),
-                  ),
+                chip('Desktop', desktopView),
+                chip('All', allView),
+                chip('Unfiled', unfiledView),
+                for (final folder in folders) chip(folder, folderView(folder)),
               ],
             ),
           ),
@@ -376,7 +396,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               : 'Sort A–Z',
           color: sorted ? Theme.of(context).colorScheme.primary : null,
           icon: const Icon(Icons.sort_by_alpha),
-          onPressed: () => library.setSortAlphabetically(!sorted),
+          onPressed: () => settings.setSortAlphabetically(!sorted),
         ),
       ],
     );
@@ -428,7 +448,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     // Stay on the folder, under whatever name it ended up with.
     final result = library.renameFolder(old, name);
-    setState(() => _view = (scope: _Scope.folder, folder: result));
+    setState(() => _view = folderView(result));
   }
 
   Future<void> _deleteFolder() async {
@@ -442,25 +462,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (!confirmed || !mounted) return;
 
     library.deleteFolder(folder);
-    setState(() => _view = _allView);
+    setState(() => _view = allView);
   }
 
   // ---- search -------------------------------------------------------------
 
   /// What's typed in the search box, as lowercase words.
-  List<String> get _queryTokens => _queryController.text
-      .toLowerCase()
-      .split(RegExp(r'\s+'))
-      .where((t) => t.isNotEmpty)
-      .toList();
+  List<String> get _queryTokens => searchTokens(_queryController.text);
 
-  /// Every word has to appear in the sprite's name or in one of its folder
-  /// names, so "char walk" finds CHAR_1_WALK and "walk dog" finds DOG_1_WALK.
-  bool _matches(Sprite sprite, List<String> tokens) {
-    if (tokens.isEmpty) return true;
-    final haystack = '${sprite.name} ${sprite.folders.join(' ')}'.toLowerCase();
-    return tokens.every(haystack.contains);
-  }
+  // /// Every word has to appear in the sprite's name or in one of its folder
+  // /// names, so "char walk" finds CHAR_1_WALK and "walk dog" finds DOG_1_WALK.
+  // bool _matches(Sprite sprite, List<String> tokens) {
+  //   if (tokens.isEmpty) return true;
+  //   final haystack = '${sprite.name} ${sprite.folders.join(' ')}'.toLowerCase();
+  //   return tokens.every(haystack.contains);
+  // }
 
   void _openSearch() => setState(() => _searching = true);
 
@@ -469,167 +485,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     setState(() => _searching = false);
   }
 
-  String _viewLabel() => switch (_view.scope) {
-    _Scope.desktop => 'Desktop',
-    _Scope.all => 'All',
-    _Scope.unfiled => 'Unfiled',
-    _Scope.folder => _view.folder ?? 'this folder',
-  };
-}
-
-class _SpriteTile extends StatefulWidget {
-  final Sprite sprite;
-  final VoidCallback onOpen;
-  final VoidCallback onRename;
-  final VoidCallback onOrganize;
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
-
-  const _SpriteTile({
-    super.key,
-    required this.sprite,
-    required this.onOpen,
-    required this.onRename,
-    required this.onOrganize,
-    required this.onCopy,
-    required this.onDelete,
-  });
-
-  @override
-  State<_SpriteTile> createState() => _SpriteTileState();
-}
-
-class _SpriteTileState extends State<_SpriteTile> {
-  bool _previewing = false;
-
-  @override
-  void didUpdateWidget(covariant _SpriteTile old) {
-    super.didUpdateWidget(old);
-
-    // Avoid running a preview from stale frames post edit / rename.
-    if (_previewing && !identical(old.sprite, widget.sprite)) {
-      _previewing = false;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sprite = widget.sprite;
-    final frames = sprite.frameCount;
-
-    // Where this sprite lives: the desktop and/or its folders.
-    final places = [
-      if (sprite.onDesktop) 'Desktop',
-      ...sprite.folders.toList()..sort(compareFolderNames),
-    ];
-
-    return ListTile(
-      isThreeLine: places.isNotEmpty,
-      leading: SizedBox.square(
-        dimension: 48,
-        child: _previewing
-            ? _LivePreview(sprite: sprite)
-            // Thumbnail = first frame, drawn by the same painter as the grid.
-            : CustomPaint(
-                painter: PixelGridPainter(
-                  frame: sprite.frames.first,
-                  gridSize: sprite.gridSize,
-                ),
-              ),
-      ),
-      title: Text(sprite.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${sprite.gridSize} × ${sprite.gridSize} · '
-            '$frames ${frames == 1 ? 'frame' : 'frames'}'
-            ' · ${sprite.frameMs}ms',
-          ),
-          if (places.isNotEmpty)
-            Text(
-              places.join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: Icon(_previewing ? Icons.pause : Icons.play_arrow),
-            onPressed: frames > 1
-                ? () => setState(() => _previewing = !_previewing)
-                : null,
-            tooltip: _previewing ? 'Pause preview' : 'Play preview',
-          ),
-          PopupMenuButton<_TileAction>(
-            onSelected: (action) {
-              switch (action) {
-                case _TileAction.copy:
-                  widget.onCopy();
-                case _TileAction.delete:
-                  widget.onDelete();
-                case _TileAction.organize:
-                  widget.onOrganize();
-                case _TileAction.rename:
-                  widget.onRename();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: _TileAction.rename, child: Text('Rename')),
-              PopupMenuItem(
-                value: _TileAction.organize,
-                child: Text('Folders & desktop…'),
-              ),
-              PopupMenuItem(value: _TileAction.copy, child: Text('Copy')),
-              PopupMenuItem(value: _TileAction.delete, child: Text('Delete')),
-            ],
-          ),
-        ],
-      ),
-      onTap: _open,
-    );
-  }
-
-  void _open() {
-    setState(() => _previewing = false);
-    widget.onOpen();
-  }
-}
-
-/// A small looping animation (via PixelAnimation).
-class _LivePreview extends StatefulWidget {
-  final Sprite sprite;
-
-  const _LivePreview({required this.sprite});
-
-  @override
-  State<_LivePreview> createState() => __LivePreviewState();
-}
-
-class __LivePreviewState extends State<_LivePreview> {
-  late final PixelPlaybackController _playback = PixelPlaybackController(
-    frameCount: widget.sprite.frameCount,
-  );
-
-  @override
-  void dispose() {
-    _playback.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PixelAnimation(
-      baseFrameDuration: Duration(milliseconds: widget.sprite.frameMs),
-      controller: _playback,
-      frames: widget.sprite.frames,
-      gridSize: widget.sprite.gridSize,
-      jitterPercent: widget.sprite.jitterPercent,
-    );
-  }
+  // String _viewLabel() => switch (_view.scope) {
+  //   _Scope.desktop => 'Desktop',
+  //   _Scope.all => 'All',
+  //   _Scope.unfiled => 'Unfiled',
+  //   _Scope.folder => _view.folder ?? 'this folder',
+  // };
 }

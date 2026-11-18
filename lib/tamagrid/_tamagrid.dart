@@ -1,4 +1,5 @@
 export 'frame_strip.dart';
+export 'frame_time_dialog.dart';
 export 'frames_bar.dart';
 export 'pixel_animation.dart';
 export 'pixel_edit_overlay.dart';

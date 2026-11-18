@@ -36,9 +36,9 @@ class FramesBar extends StatelessWidget {
               : isFloating!
               ? limen! - limen! / 50
               : double.infinity,
-          margin: isHorizontal
-              ? EdgeInsets.only(top: barSize / 4)
-              : EdgeInsets.only(left: barSize / 4),
+          // margin: isHorizontal
+          //     ? EdgeInsets.only(top: barSize / 4)
+          //     : EdgeInsets.only(left: barSize / 4),
           width: !isHorizontal
               ? barSize
               : isFloating!

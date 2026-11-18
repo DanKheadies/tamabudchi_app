@@ -34,9 +34,9 @@ class SequenceBar extends StatelessWidget {
               : isFloating!
               ? limen! - limen! / 50
               : double.infinity,
-          margin: isHorizontal
-              ? EdgeInsets.only(bottom: barSize / 4)
-              : EdgeInsets.only(right: barSize / 4),
+          // margin: isHorizontal
+          //     ? EdgeInsets.only(bottom: barSize / 4)
+          //     : EdgeInsets.only(right: barSize / 4),
           width: !isHorizontal
               ? barSize
               : isFloating!
